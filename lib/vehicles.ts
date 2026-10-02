@@ -82,13 +82,9 @@ export function waLink(phone: string, text?: string): string {
   return text ? `${base}?text=${encodeURIComponent(text)}` : base
 }
 
-export const WA_MESSAGES = {
-  general: 'Olá! Vim pelo site do Rei do SUV e quero conhecer os carros disponíveis.',
-  visit: 'Olá! Vim pelo site do Rei do SUV e quero agendar uma visita.',
-  vehicle: (v: Vehicle) => {
-    const desc = [vehicleName(v), v.version, yearLabel(v)].filter(Boolean).join(' ')
-    return `Olá! Vi o ${desc} no site do Rei do SUV e tenho interesse. Quando posso ver de perto?`
-  },
+/** "Kia Sorento EX 3.5 V6 2017/2018" — usado em {carro} nas mensagens de WhatsApp */
+export function carDescription(v: Vehicle): string {
+  return [vehicleName(v), v.version, yearLabel(v)].filter(Boolean).join(' ')
 }
 
 export const STATUS_LABEL: Record<Vehicle['status'], string> = {

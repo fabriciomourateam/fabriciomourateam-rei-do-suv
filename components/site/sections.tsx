@@ -1,9 +1,10 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { FAQ, FINAL_CTA, MANIFESTO, MARQUEE, PILLARS, STEPS, VISIT } from '@/lib/copy'
+import type { SiteContent } from '@/lib/content'
 import type { SiteConfig } from '@/lib/types'
 import { normalizePhone } from '@/lib/vehicles'
 import { CrownIcon, GaugeIcon, GemIcon, InstagramIcon, PlusIcon, ShieldIcon, SparkleIcon, TikTokIcon, WhatsAppIcon } from './icons'
+import { Rich } from './rich'
 import { WaButton } from './wa-button'
 
 type CSS = React.CSSProperties
@@ -18,8 +19,8 @@ export function Eyebrow({ children, center = false }: { children: React.ReactNod
   )
 }
 
-export function Marquee() {
-  const items = [...MARQUEE, ...MARQUEE]
+export function Marquee({ items: base }: { items: SiteContent['marquee'] }) {
+  const items = [...base, ...base]
   return (
     <div className="relative overflow-hidden border-y border-gold bg-coal py-5" aria-hidden>
       <div className="animate-marquee flex w-max items-center gap-10">
@@ -36,19 +37,18 @@ export function Marquee() {
   )
 }
 
-export function Manifesto() {
+export function Manifesto({ content }: { content: SiteContent['manifesto'] }) {
   return (
     <section className="relative px-5 py-28 md:px-8 md:py-40">
       <div className="mx-auto max-w-5xl text-center">
         <div data-reveal>
-          <Eyebrow center>{MANIFESTO.eyebrow}</Eyebrow>
+          <Eyebrow center>{content.eyebrow}</Eyebrow>
         </div>
         <h2 data-reveal style={{ '--d': '100ms' } as CSS} className="font-serif mt-8 text-[clamp(2.2rem,5.4vw,4.4rem)] leading-[1.05] font-medium text-text">
-          A gente <em className="text-gold">recusa</em> mais carros
-          <br className="hidden md:block" /> do que compra.
+          <Rich text={content.title} accent="text-gold italic" />
         </h2>
         <p data-reveal style={{ '--d': '200ms' } as CSS} className="mx-auto mt-8 max-w-2xl text-[15px] leading-relaxed text-text/65 md:text-[17px]">
-          {MANIFESTO.body}
+          <Rich text={content.body} />
         </p>
       </div>
     </section>
@@ -57,31 +57,29 @@ export function Manifesto() {
 
 const PILLAR_ICONS = [GemIcon, GaugeIcon, ShieldIcon, SparkleIcon]
 
-export function Pillars() {
+export function Pillars({ content }: { content: SiteContent['pillars'] }) {
   return (
     <section id="padrao" className="relative scroll-mt-20 overflow-hidden bg-coal px-5 py-28 md:px-8 md:py-36">
       <div className="pointer-events-none absolute top-0 left-1/2 h-px w-2/3 -translate-x-1/2 rule-gold" />
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-10 md:grid-cols-[0.9fr_1.1fr] md:items-end">
           <div data-reveal>
-            <Eyebrow>O Padrão Rei</Eyebrow>
+            <Eyebrow>{content.eyebrow}</Eyebrow>
             <h2 className="font-display mt-6 text-[clamp(2rem,4.6vw,3.6rem)] leading-[0.95]">
-              <span className="text-silver">Quatro regras.</span>
-              <br />
-              <span className="text-gold">Nenhuma exceção.</span>
+              <Rich text={content.title} base="text-silver" accent="text-gold" />
             </h2>
           </div>
           <p data-reveal style={{ '--d': '120ms' } as CSS} className="max-w-lg text-[15px] leading-relaxed text-text/65 md:justify-self-end md:text-base">
-            Todo carro que entra no nosso estoque passa pelo mesmo crivo. Se falhar em uma delas, não chega até você.
+            <Rich text={content.subtitle} />
           </p>
         </div>
 
-        <div className="mt-16 grid gap-px overflow-hidden rounded-[24px] border border-gold bg-[var(--line)] sm:grid-cols-2 lg:grid-cols-4">
-          {PILLARS.map((p, i) => {
-            const Icon = PILLAR_ICONS[i]
+        <div className={`mt-16 grid gap-px overflow-hidden rounded-[24px] border border-gold bg-[var(--line)] sm:grid-cols-2 ${content.items.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
+          {content.items.map((p, i) => {
+            const Icon = PILLAR_ICONS[i % PILLAR_ICONS.length]
             return (
-              <div key={p.title} data-reveal style={{ '--d': `${i * 90}ms` } as CSS} className="group relative bg-coal p-8 transition duration-500 hover:bg-coal-2 md:p-10">
-                <span className="font-display absolute top-7 right-7 text-sm text-white/15">0{i + 1}</span>
+              <div key={i} data-reveal style={{ '--d': `${i * 90}ms` } as CSS} className="group relative bg-coal p-8 transition duration-500 hover:bg-coal-2 md:p-10">
+                <span className="font-display absolute top-7 right-7 text-sm text-white/15">{String(i + 1).padStart(2, '0')}</span>
                 <span className="flex h-14 w-14 items-center justify-center rounded-full border border-[var(--gold)]/35 text-gold-light transition duration-500 group-hover:bg-[var(--gold)] group-hover:text-ink">
                   <Icon />
                 </span>
@@ -96,20 +94,22 @@ export function Pillars() {
   )
 }
 
-export function Steps() {
+export function Steps({ content }: { content: SiteContent['steps'] }) {
+  const n = Math.min(content.items.length, 4)
+  const cols = n >= 4 ? 'md:grid-cols-4' : n === 3 ? 'md:grid-cols-3' : n === 2 ? 'md:grid-cols-2' : 'md:grid-cols-1'
   return (
     <section className="px-5 py-28 md:px-8 md:py-36">
       <div className="mx-auto max-w-7xl">
         <div data-reveal className="text-center">
-          <Eyebrow center>Como funciona</Eyebrow>
+          <Eyebrow center>{content.eyebrow}</Eyebrow>
           <h2 className="font-serif mt-6 text-[clamp(2rem,4.6vw,3.6rem)] leading-[1.05] font-medium">
-            Do primeiro olhar <em className="text-gold">à chave na mão.</em>
+            <Rich text={content.title} accent="text-gold italic" />
           </h2>
         </div>
-        <ol className="relative mt-20 grid gap-12 md:grid-cols-4 md:gap-8">
+        <ol className={`relative mt-20 grid gap-12 ${cols} md:gap-8`}>
           <div className="pointer-events-none absolute top-7 right-[12%] left-[12%] hidden h-px rule-gold md:block" />
-          {STEPS.map((s, i) => (
-            <li key={s.title} data-reveal style={{ '--d': `${i * 110}ms` } as CSS} className="relative flex gap-5 md:flex-col md:items-center md:text-center">
+          {content.items.map((s, i) => (
+            <li key={i} data-reveal style={{ '--d': `${i * 110}ms` } as CSS} className="relative flex gap-5 md:flex-col md:items-center md:text-center">
               <span className="font-display relative z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[var(--gold)]/50 bg-ink text-base text-gold">
                 {i + 1}
               </span>
@@ -125,7 +125,7 @@ export function Steps() {
   )
 }
 
-export function Visit({ config, visitHref, photo }: { config: SiteConfig; visitHref: string; photo?: string }) {
+export function Visit({ content, config, visitHref, photo }: { content: SiteContent['visit']; config: SiteConfig; visitHref: string; photo?: string }) {
   return (
     <section id="visita" className="scroll-mt-20 px-5 pb-28 md:px-8 md:pb-36">
       <div className="grain relative mx-auto grid max-w-7xl overflow-hidden rounded-[28px] border border-gold bg-coal md:grid-cols-2">
@@ -135,15 +135,13 @@ export function Visit({ config, visitHref, photo }: { config: SiteConfig; visitH
         </div>
         <div className="relative flex flex-col justify-center p-8 md:p-14 lg:p-20">
           <div data-reveal>
-            <Eyebrow>{VISIT.eyebrow}</Eyebrow>
+            <Eyebrow>{content.eyebrow}</Eyebrow>
           </div>
           <h2 data-reveal style={{ '--d': '100ms' } as CSS} className="font-serif mt-6 text-[clamp(2rem,3.8vw,3.2rem)] leading-[1.05] font-medium">
-            Sem vitrine lotada.
-            <br />
-            <em className="text-gold">Sem vendedor te cercando.</em>
+            <Rich text={content.title} accent="text-gold italic" />
           </h2>
           <p data-reveal style={{ '--d': '180ms' } as CSS} className="mt-6 text-[15px] leading-relaxed text-text/65">
-            {VISIT.body}
+            <Rich text={content.body} />
           </p>
           <dl data-reveal style={{ '--d': '240ms' } as CSS} className="mt-8 grid gap-4 border-t border-gold pt-6 text-sm sm:grid-cols-2">
             <div>
@@ -158,7 +156,7 @@ export function Visit({ config, visitHref, photo }: { config: SiteConfig; visitH
           </dl>
           <div data-reveal style={{ '--d': '300ms' } as CSS} className="mt-9">
             <WaButton href={visitHref} className="btn-gold inline-flex items-center gap-2 rounded-full px-8 py-4 text-sm font-semibold">
-              {VISIT.cta}
+              {content.cta}
             </WaButton>
           </div>
         </div>
@@ -167,29 +165,29 @@ export function Visit({ config, visitHref, photo }: { config: SiteConfig; visitH
   )
 }
 
-export function Faq() {
+export function Faq({ content }: { content: SiteContent['faq'] }) {
   return (
     <section id="duvidas" className="scroll-mt-20 border-t border-white/[0.06] px-5 py-28 md:px-8 md:py-36">
       <div className="mx-auto grid max-w-6xl gap-12 md:grid-cols-[0.8fr_1.2fr]">
         <div data-reveal>
-          <Eyebrow>Dúvidas</Eyebrow>
+          <Eyebrow>{content.eyebrow}</Eyebrow>
           <h2 className="font-display mt-6 text-[clamp(1.9rem,4vw,3rem)] leading-[0.95]">
-            <span className="text-silver">Perguntas</span>
-            <br />
-            <span className="text-gold">frequentes</span>
+            <Rich text={content.title} base="text-silver" accent="text-gold" />
           </h2>
-          <p className="mt-6 max-w-xs text-sm leading-relaxed text-text/55">Não achou o que procurava? Chama a gente — resposta rápida, de gente de verdade.</p>
+          <p className="mt-6 max-w-xs text-sm leading-relaxed text-text/55">
+            <Rich text={content.subtitle} />
+          </p>
         </div>
         <div className="divide-y divide-white/[0.08] border-y border-white/[0.08]">
-          {FAQ.map((f, i) => (
-            <details key={f.q} data-reveal style={{ '--d': `${i * 60}ms` } as CSS} className="group py-6 [&_summary::-webkit-details-marker]:hidden">
+          {content.items.map((f, i) => (
+            <details key={i} data-reveal style={{ '--d': `${i * 60}ms` } as CSS} className="group py-6 [&_summary::-webkit-details-marker]:hidden">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-left text-[16px] font-medium text-text/90 transition hover:text-gold-light md:text-[17px]">
                 {f.q}
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/15 text-[var(--gold)] transition duration-300 group-open:rotate-45 group-open:border-[var(--gold)]">
                   <PlusIcon />
                 </span>
               </summary>
-              <p className="mt-4 max-w-2xl pr-10 text-[15px] leading-relaxed text-text/60">{f.a}</p>
+              <p className="mt-4 max-w-2xl pr-10 text-[15px] leading-relaxed text-text/60"><Rich text={f.a} /></p>
             </details>
           ))}
         </div>
@@ -198,7 +196,7 @@ export function Faq() {
   )
 }
 
-export function FinalCta({ waHref }: { waHref: string }) {
+export function FinalCta({ content, waHref }: { content: SiteContent['finalCta']; waHref: string }) {
   return (
     <section className="grain relative overflow-hidden px-5 py-32 md:px-8 md:py-44">
       <div className="pointer-events-none absolute inset-0 -z-0">
@@ -209,14 +207,14 @@ export function FinalCta({ waHref }: { waHref: string }) {
           <Image src="/logo.jpg" alt="" width={88} height={88} className="mx-auto h-20 w-20 rounded-full ring-1 ring-[var(--gold)]/40" />
         </div>
         <h2 data-reveal style={{ '--d': '100ms' } as CSS} className="font-display mt-10 text-[clamp(2rem,5.4vw,4.2rem)] leading-[0.98] text-silver">
-          {FINAL_CTA.title}
+          <Rich text={content.title} />
         </h2>
         <p data-reveal style={{ '--d': '180ms' } as CSS} className="font-serif mt-6 text-2xl text-gold italic md:text-3xl">
-          {FINAL_CTA.subtitle}
+          <Rich text={content.subtitle} accent="text-gold-light" />
         </p>
         <div data-reveal style={{ '--d': '260ms' } as CSS} className="mt-12">
           <WaButton href={waHref} className="btn-gold inline-flex items-center gap-3 rounded-full px-10 py-5 text-[15px] font-semibold">
-            {FINAL_CTA.cta}
+            {content.cta}
           </WaButton>
         </div>
       </div>

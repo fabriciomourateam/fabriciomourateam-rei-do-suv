@@ -17,8 +17,6 @@ export async function saveConfig(formData: FormData) {
     city: s(formData, 'city'),
     address_note: s(formData, 'addressNote'),
     hours: s(formData, 'hours'),
-    hero_title: s(formData, 'heroTitle'),
-    hero_subtitle: s(formData, 'heroSubtitle'),
   })
   if (error) redirect(`/painel/config?erro=${encodeURIComponent(error.message)}`)
   revalidatePath('/', 'layout')

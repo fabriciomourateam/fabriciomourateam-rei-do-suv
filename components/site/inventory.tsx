@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from 'react'
 import type { Vehicle } from '@/lib/types'
-import { VehicleCard } from './vehicle-card'
+import { VehicleCard, type CardTexts } from './vehicle-card'
 
-export function InventoryGrid({ vehicles, whatsapp }: { vehicles: Vehicle[]; whatsapp: string }) {
+export function InventoryGrid({ vehicles, whatsapp, texts }: { vehicles: Vehicle[]; whatsapp: string; texts: CardTexts }) {
   const models = useMemo(() => Array.from(new Set(vehicles.map((v) => v.model))).sort(), [vehicles])
   const [active, setActive] = useState<string>('Todos')
   const list = active === 'Todos' ? vehicles : vehicles.filter((v) => v.model === active)
@@ -30,7 +30,7 @@ export function InventoryGrid({ vehicles, whatsapp }: { vehicles: Vehicle[]; wha
       <div className={`grid gap-5 sm:grid-cols-2 lg:gap-7 ${list.length < 3 ? "mx-auto max-w-4xl" : "lg:grid-cols-3"}`}>
         {list.map((v, i) => (
           <div key={v.id}>
-            <VehicleCard v={v} whatsapp={whatsapp} priority={i < 2} />
+            <VehicleCard v={v} whatsapp={whatsapp} texts={texts} priority={i < 2} />
           </div>
         ))}
       </div>

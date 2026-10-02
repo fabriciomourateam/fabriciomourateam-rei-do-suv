@@ -35,8 +35,6 @@ export default async function ConfigPage({ searchParams }: { searchParams: Promi
         <Field name="city" label="Cidade" value={c.city} />
         <Field name="addressNote" label="Observação de endereço" value={c.addressNote} />
         <Field name="hours" label="Horário" value={c.hours} />
-        <Field name="heroTitle" label="Título do hero (opcional)" value={c.heroTitle} help="Vazio = texto padrão" />
-        <Field name="heroSubtitle" label="Subtítulo do hero (opcional)" value={c.heroSubtitle} help="Vazio = texto padrão" area />
         <button className="btn-gold w-full rounded-xl px-6 py-3 text-sm font-bold uppercase tracking-widest sm:w-auto">Salvar</button>
       </form>
     </div>

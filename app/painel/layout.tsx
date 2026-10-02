@@ -7,6 +7,7 @@ const LINKS = [
   { href: '/painel/veiculos', label: 'Veículos' },
   { href: '/painel/veiculos/novo', label: 'Novo veículo' },
   { href: '/painel/config', label: 'Configurações' },
+  { href: '/painel/textos', label: 'Textos do site' },
   { href: '/painel/usuarios', label: 'Usuários' },
 ]
 

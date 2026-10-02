@@ -1,11 +1,19 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { fillCar } from '@/lib/content'
 import type { Vehicle } from '@/lib/types'
-import { STATUS_LABEL, WA_MESSAGES, formatKm, vehicleName, waLink, yearLabel } from '@/lib/vehicles'
+import { STATUS_LABEL, carDescription, formatKm, vehicleName, waLink, yearLabel } from '@/lib/vehicles'
 import { ArrowIcon, CrownIcon } from './icons'
 import { WaButton } from './wa-button'
 
-export function VehicleCard({ v, whatsapp, priority = false }: { v: Vehicle; whatsapp: string; priority?: boolean }) {
+export interface CardTexts {
+  cta: string
+  ctaSold: string
+  vehicleTemplate: string
+  soldTemplate: string
+}
+
+export function VehicleCard({ v, whatsapp, texts, priority = false }: { v: Vehicle; whatsapp: string; texts: CardTexts; priority?: boolean }) {
   const sold = v.status === 'vendido'
   const href = `/estoque/${v.slug}`
   const meta = [yearLabel(v), formatKm(v.km)].filter(Boolean).join('  ·  ')
@@ -65,14 +73,14 @@ export function VehicleCard({ v, whatsapp, priority = false }: { v: Vehicle; wha
         <div className="mt-auto flex gap-2 pt-1">
           {sold ? (
             <WaButton
-              href={waLink(whatsapp, `Olá! Vi que o ${vehicleName(v)} ${v.version} foi vendido. Quero ser avisado quando chegar um parecido.`)}
+              href={waLink(whatsapp, fillCar(texts.soldTemplate, carDescription(v)))}
               className="btn-ghost flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-[13px]"
             >
-              Quero um parecido
+              {texts.ctaSold}
             </WaButton>
           ) : (
-            <WaButton href={waLink(whatsapp, WA_MESSAGES.vehicle(v))} vehicleId={v.id} className="btn-gold flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-[13px] font-semibold">
-              Quero esse
+            <WaButton href={waLink(whatsapp, fillCar(texts.vehicleTemplate, carDescription(v)))} vehicleId={v.id} className="btn-gold flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-[13px] font-semibold">
+              {texts.cta}
             </WaButton>
           )}
           <Link

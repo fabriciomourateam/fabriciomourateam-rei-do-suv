@@ -6,16 +6,17 @@ import { useEffect, useState } from 'react'
 import { CloseIcon } from './icons'
 import { WaButton } from './wa-button'
 
-const LINKS = [
-  { href: '/#estoque', label: 'Estoque' },
-  { href: '/#padrao', label: 'O Padrão Rei' },
-  { href: '/#visita', label: 'Visita' },
-  { href: '/#duvidas', label: 'Dúvidas' },
+const ALL_LINKS = [
+  { href: '/#estoque', label: 'Estoque', section: 'inventory' },
+  { href: '/#padrao', label: 'O Padrão Rei', section: 'pillars' },
+  { href: '/#visita', label: 'Visita', section: 'visit' },
+  { href: '/#duvidas', label: 'Dúvidas', section: 'faq' },
 ]
 
-export function Header({ waHref }: { waHref: string }) {
+export function Header({ waHref, visibleIds }: { waHref: string; visibleIds?: string[] }) {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
+  const LINKS = ALL_LINKS.filter((l) => !visibleIds || visibleIds.includes(l.section))
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24)

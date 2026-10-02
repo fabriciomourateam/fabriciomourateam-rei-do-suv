@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Archivo, Cormorant_Garamond, Inter } from 'next/font/google'
+import { getSiteContent } from '@/lib/content-store'
 import './globals.css'
 
 const archivo = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-archivo', display: 'swap' })
@@ -14,20 +15,22 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'sw
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: 'Rei do SUV | SUVs premium top de linha',
-    template: '%s | Rei do SUV',
-  },
-  description:
-    'Curadoria de SUVs premium: Sorento, Santa Fe, Sportage e mais. Só versões top de linha, baixa quilometragem e estado de showroom. Agende sua visita.',
-  openGraph: {
-    type: 'website',
-    locale: 'pt_BR',
-    siteName: 'Rei do SUV',
-  },
-  icons: { icon: '/logo.jpg', apple: '/logo.jpg' },
+export async function generateMetadata(): Promise<Metadata> {
+  const { seo } = await getSiteContent()
+  return {
+    metadataBase: new URL(siteUrl),
+    title: {
+      default: seo.title,
+      template: '%s | Rei do SUV',
+    },
+    description: seo.description,
+    openGraph: {
+      type: 'website',
+      locale: 'pt_BR',
+      siteName: 'Rei do SUV',
+    },
+    icons: { icon: '/logo.jpg', apple: '/logo.jpg' },
+  }
 }
 
 export const viewport: Viewport = {

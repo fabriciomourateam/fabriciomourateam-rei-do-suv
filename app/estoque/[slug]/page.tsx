@@ -8,9 +8,11 @@ import { RevealObserver } from '@/components/site/reveal'
 import { Footer, WaFloat } from '@/components/site/sections'
 import { VehicleCard } from '@/components/site/vehicle-card'
 import { WaButton } from '@/components/site/wa-button'
-import { PILLARS } from '@/lib/copy'
+import { Rich } from '@/components/site/rich'
+import { fillCar } from '@/lib/content'
+import { getSiteContent } from '@/lib/content-store'
 import { getSiteConfig, getVehicleBySlug, getVehicles } from '@/lib/data'
-import { STATUS_LABEL, WA_MESSAGES, formatKm, specList, vehicleName, waLink, yearLabel } from '@/lib/vehicles'
+import { STATUS_LABEL, carDescription, formatKm, specList, vehicleName, waLink, yearLabel } from '@/lib/vehicles'
 
 export const revalidate = 60
 
@@ -31,13 +33,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function VehiclePage({ params }: Props) {
   const { slug } = await params
-  const [v, config, all] = await Promise.all([getVehicleBySlug(slug), getSiteConfig(), getVehicles()])
+  const [v, config, all, content] = await Promise.all([getVehicleBySlug(slug), getSiteConfig(), getVehicles(), getSiteContent()])
   if (!v) notFound()
 
   const sold = v.status === 'vendido'
-  const waHref = sold
-    ? waLink(config.whatsapp, `Olá! Vi que o ${vehicleName(v)} ${v.version} foi vendido. Quero ser avisado quando chegar um parecido.`)
-    : waLink(config.whatsapp, WA_MESSAGES.vehicle(v))
+  const vp = content.vehiclePage
+  const waGeneral = waLink(config.whatsapp, content.whatsapp.general)
+  const waHref = waLink(config.whatsapp, fillCar(sold ? content.whatsapp.sold : content.whatsapp.vehicle, carDescription(v)))
+  const visibleIds = content.sections.filter((s) => s.visible !== false).map((s) => s.id)
+  const cardTexts = {
+    cta: content.inventory.cta,
+    ctaSold: content.inventory.ctaSold,
+    vehicleTemplate: content.whatsapp.vehicle,
+    soldTemplate: content.whatsapp.sold,
+  }
   const others = all.filter((o) => o.id !== v.id && o.status !== 'vendido').slice(0, 3)
   const specs = specList(v)
 
@@ -57,7 +66,7 @@ export default async function VehiclePage({ params }: Props) {
 
   return (
     <>
-      <Header waHref={waLink(config.whatsapp, WA_MESSAGES.general)} />
+      <Header waHref={waGeneral} visibleIds={visibleIds} />
       <main className="px-5 pt-24 pb-20 md:px-8 md:pt-32">
         <div className="mx-auto max-w-7xl">
           <nav className="mb-6 flex items-center gap-2 text-[12px] tracking-[0.14em] text-muted uppercase">
@@ -81,7 +90,7 @@ export default async function VehiclePage({ params }: Props) {
                   </span>
                 ) : (
                   <span className="flex items-center gap-1.5 rounded-full border border-[var(--gold)]/40 px-3 py-1 text-[10px] font-semibold tracking-[0.16em] text-gold-light uppercase">
-                    <CrownIcon className="h-3 w-3" /> Unidade única
+                    <CrownIcon className="h-3 w-3" /> {vp.badge}
                   </span>
                 )}
               </div>
@@ -102,7 +111,7 @@ export default async function VehiclePage({ params }: Props) {
 
               {v.highlights.length > 0 && (
                 <div className="mt-9">
-                  <h2 className="text-[11px] tracking-[0.3em] text-gold-light uppercase">Destaques</h2>
+                  <h2 className="text-[11px] tracking-[0.3em] text-gold-light uppercase">{vp.highlightsTitle}</h2>
                   <ul className="mt-4 flex flex-wrap gap-2">
                     {v.highlights.map((h) => (
                       <li key={h} className="rounded-full border border-white/12 bg-coal px-4 py-2 text-[13px] text-text/85">
@@ -115,23 +124,23 @@ export default async function VehiclePage({ params }: Props) {
 
               {v.description && (
                 <div className="mt-9">
-                  <h2 className="text-[11px] tracking-[0.3em] text-gold-light uppercase">Sobre este carro</h2>
+                  <h2 className="text-[11px] tracking-[0.3em] text-gold-light uppercase">{vp.aboutTitle}</h2>
                   <p className="mt-4 text-[15px] leading-relaxed whitespace-pre-line text-text/70">{v.description}</p>
                 </div>
               )}
 
               <div className="mt-10 hidden flex-col gap-3 sm:flex sm:flex-row">
                 <WaButton href={waHref} vehicleId={sold ? undefined : v.id} className="btn-gold flex flex-1 items-center justify-center gap-2 rounded-full py-4 text-sm font-semibold">
-                  {sold ? 'Quero um parecido' : 'Quero esse — agendar visita'}
+                  {sold ? vp.ctaSold : vp.cta}
                 </WaButton>
               </div>
-              <p className="mt-4 hidden text-[13px] text-muted sm:block">Valor e condições direto no WhatsApp. Resposta rápida, de gente de verdade.</p>
+              <p className="mt-4 hidden text-[13px] text-muted sm:block"><Rich text={vp.note} /></p>
 
               <div className="mt-12 rounded-2xl border border-white/[0.07] bg-coal p-6">
-                <p className="text-[11px] tracking-[0.3em] text-gold-light uppercase">O Padrão Rei</p>
+                <p className="text-[11px] tracking-[0.3em] text-gold-light uppercase">{vp.pillarsTitle}</p>
                 <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {PILLARS.map((p) => (
-                    <li key={p.title} className="flex items-start gap-2.5 text-[14px] text-text/75">
+                  {content.pillars.items.map((p, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-[14px] text-text/75">
                       <CrownIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--gold)]" />
                       {p.title}
                     </li>
@@ -145,7 +154,7 @@ export default async function VehiclePage({ params }: Props) {
             <section className="mt-28">
               <div className="mb-10 flex items-end justify-between gap-6">
                 <h2 className="font-display text-[clamp(1.6rem,3.4vw,2.6rem)] leading-none">
-                  <span className="text-silver">Outros SUVs</span> <span className="text-gold">do Rei</span>
+                  <Rich text={vp.othersTitle} base="text-silver" accent="text-gold" />
                 </h2>
                 <Link href="/#estoque" className="hidden items-center gap-2 text-[13px] text-text/70 hover:text-gold-light sm:flex">
                   Ver todo o estoque <ArrowIcon />
@@ -153,7 +162,7 @@ export default async function VehiclePage({ params }: Props) {
               </div>
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-7">
                 {others.map((o) => (
-                  <VehicleCard key={o.id} v={o} whatsapp={config.whatsapp} />
+                  <VehicleCard key={o.id} v={o} whatsapp={config.whatsapp} texts={cardTexts} />
                 ))}
               </div>
             </section>
@@ -164,11 +173,11 @@ export default async function VehiclePage({ params }: Props) {
       {/* Barra fixa no mobile */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gold bg-ink/90 p-3 backdrop-blur-xl sm:hidden">
         <WaButton href={waHref} vehicleId={sold ? undefined : v.id} className="btn-gold flex w-full items-center justify-center gap-2 rounded-full py-4 text-sm font-semibold">
-          {sold ? 'Quero um parecido' : 'Quero esse — agendar visita'}
+          {sold ? vp.ctaSold : vp.cta}
         </WaButton>
       </div>
 
-      <Footer config={config} waHref={waLink(config.whatsapp, WA_MESSAGES.general)} />
+      <Footer config={config} waHref={waGeneral} />
       <div className="hidden sm:block">
         <WaFloat waHref={waHref} />
       </div>

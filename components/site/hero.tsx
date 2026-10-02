@@ -1,15 +1,15 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { HERO, PROOF } from '@/lib/copy'
-import type { SiteConfig, Vehicle } from '@/lib/types'
+import type { SiteContent } from '@/lib/content'
+import type { Vehicle } from '@/lib/types'
 import { vehicleName, yearLabel } from '@/lib/vehicles'
 import { ArrowIcon } from './icons'
+import { Rich } from './rich'
 import { WaButton } from './wa-button'
 
-export function Hero({ featured, config, visitHref }: { featured?: Vehicle; config: SiteConfig; visitHref: string }) {
+export function Hero({ featured, hero, visitHref }: { featured?: Vehicle; hero: SiteContent['hero']; visitHref: string }) {
   const cover = featured?.photos[0]
   const second = featured?.photos[1]
-  const subtitle = config.heroSubtitle || HERO.subtitle
 
   return (
     <section className="grain relative isolate flex min-h-[100svh] items-end overflow-hidden md:items-center">
@@ -34,38 +34,34 @@ export function Hero({ featured, config, visitHref }: { featured?: Vehicle; conf
         <div>
           <p data-reveal className="mb-6 flex items-center gap-3 text-[11px] tracking-[0.34em] text-gold-light uppercase">
             <span className="h-px w-10 bg-gold" />
-            {HERO.eyebrow}
+            {hero.eyebrow}
           </p>
 
-          {config.heroTitle ? (
-            <h1 data-reveal style={{ '--d': '80ms' } as React.CSSProperties} className="font-display text-[clamp(2.4rem,6.4vw,5.4rem)] leading-[0.95] text-text">
-              {config.heroTitle}
-            </h1>
-          ) : (
-            <h1 data-reveal style={{ '--d': '80ms' } as React.CSSProperties} className="leading-[0.95]">
-              <span className="font-display block text-[clamp(2.3rem,6.2vw,5.2rem)] text-silver">{HERO.titleTop}</span>
-              <span className="font-serif mt-3 block text-[clamp(2.4rem,6vw,5rem)] leading-[1] font-medium italic text-gold">
-                {HERO.titleBottom}
-              </span>
-            </h1>
-          )}
+          <h1 data-reveal style={{ '--d': '80ms' } as React.CSSProperties} className="leading-[0.95]">
+            <span className="font-display block text-[clamp(2.3rem,6.2vw,5.2rem)] text-silver">
+              <Rich text={hero.titleTop} accent="text-gold" />
+            </span>
+            <span className="font-serif mt-3 block text-[clamp(2.4rem,6vw,5rem)] leading-[1] font-medium italic text-gold">
+              <Rich text={hero.titleBottom} accent="text-gold-light" />
+            </span>
+          </h1>
 
           <p data-reveal style={{ '--d': '160ms' } as React.CSSProperties} className="mt-7 max-w-xl text-[15px] leading-relaxed text-text/70 md:text-[17px]">
-            {subtitle}
+            <Rich text={hero.subtitle} />
           </p>
 
           <div data-reveal style={{ '--d': '240ms' } as React.CSSProperties} className="mt-9 flex flex-col gap-3 sm:flex-row">
             <a href="#estoque" className="btn-gold inline-flex items-center justify-center gap-2 rounded-full px-8 py-4 text-sm font-semibold tracking-wide">
-              Ver o estoque <ArrowIcon />
+              {hero.ctaPrimary} <ArrowIcon />
             </a>
             <WaButton href={visitHref} className="btn-ghost inline-flex items-center justify-center gap-2 rounded-full px-8 py-4 text-sm font-medium">
-              Agendar uma visita
+              {hero.ctaSecondary}
             </WaButton>
           </div>
 
           <dl data-reveal style={{ '--d': '320ms' } as React.CSSProperties} className="mt-12 grid max-w-xl grid-cols-2 gap-x-6 gap-y-5 border-t border-gold pt-7 sm:grid-cols-4">
-            {PROOF.map((p) => (
-              <div key={p.title}>
+            {hero.proof.map((p, i) => (
+              <div key={i}>
                 <dt className="text-[13px] font-semibold text-gold-light">{p.title}</dt>
                 <dd className="mt-1 text-[12px] leading-snug text-muted">{p.text}</dd>
               </div>
