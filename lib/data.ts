@@ -9,10 +9,15 @@ const SELECT = '*, suv_photos(url, sort_order)'
 /** Sem variáveis do Supabase o site roda com dados de demonstração (útil para preview local). */
 export const hasSupabase = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
-/** Cliente sem cookies para leituras públicas — permite cache/ISR nas páginas do site. */
+/**
+ * Cliente sem cookies para leituras do site (permite cache/ISR). Roda só no servidor:
+ * usa a service role quando disponível (as consultas abaixo já filtram visible=true),
+ * para não depender das policies de RLS do banco.
+ */
 function publicClient() {
-  return createPublicClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    auth: { persistSession: false },
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  return createPublicClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
   })
 }
 
