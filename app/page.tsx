@@ -22,7 +22,7 @@ export default async function Home() {
     '@context': 'https://schema.org',
     '@type': 'AutoDealer',
     name: 'Rei do SUV Multimarcas',
-    description: 'Curadoria de SUVs premium topo de linha com baixa quilometragem.',
+    description: 'Curadoria de SUVs premium top de linha com baixa quilometragem.',
     telephone: `+${config.whatsapp}`,
     areaServed: config.city,
     image: '/logo.jpg',

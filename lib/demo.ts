@@ -23,7 +23,7 @@ export const DEMO_VEHICLES: Vehicle[] = [
     highlights: ['Teto solar panorâmico', 'Bancos em couro', '7 lugares', 'Rodas de liga leve', 'Câmera de ré'],
     headline: 'Sete lugares. Teto que abre o céu. Zero concessões.',
     description:
-      'Versão topo de linha com teto panorâmico, interior em couro claro e acabamento impecável. Pouco rodado, revisado e pronto para a próxima viagem em família.',
+      'Versão top de linha com teto panorâmico, interior em couro claro e acabamento impecável. Pouco rodado, revisado e pronto para a próxima viagem em família.',
     status: 'disponivel',
     visible: true,
     featured: true,

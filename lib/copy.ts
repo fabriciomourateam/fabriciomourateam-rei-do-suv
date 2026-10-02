@@ -8,17 +8,17 @@ export const HERO = {
   titleTop: 'Não é só um SUV.',
   titleBottom: 'É o melhor exemplar dele.',
   subtitle:
-    'Só versões topo de linha, quilometragem baixa e estado de showroom. Cada carro aqui passou pelo nosso crivo antes de chegar à sua garagem.',
+    'Só versões top de linha, quilometragem baixa e estado de showroom. Cada carro aqui passou pelo nosso crivo antes de chegar à sua garagem.',
 }
 
 export const PROOF = [
-  { title: 'Topo de linha', text: 'Só as versões mais completas' },
+  { title: 'Top de linha', text: 'Só as versões mais completas' },
   { title: 'KM baixo', text: 'Carros pouco rodados' },
   { title: 'Procedência', text: 'Histórico conferido' },
   { title: 'Hora marcada', text: 'O carro te espera' },
 ]
 
-export const MARQUEE = ['Sorento', 'Santa Fe', 'Sportage', 'Teto panorâmico', 'Bancos em couro', 'Baixa quilometragem', 'Versões topo de linha']
+export const MARQUEE = ['Sorento', 'Santa Fe', 'Sportage', 'Teto panorâmico', 'Bancos em couro', 'Baixa quilometragem', 'Versões top de linha']
 
 export const MANIFESTO = {
   eyebrow: 'O critério do Rei',
@@ -36,7 +36,7 @@ export const INVENTORY = {
 
 export const PILLARS = [
   {
-    title: 'Só topo de linha',
+    title: 'Só top de linha',
     text: 'Teto solar, couro, rodas de liga, tecnologia completa. Versão de entrada não entra no nosso pátio.',
   },
   {
@@ -115,7 +115,7 @@ export const HEADLINE_SUGGESTIONS: Record<string, string[]> = {
   ],
   default: [
     'Unidade única. Quando sai, não volta.',
-    'Topo de linha, baixa KM, pronto pra você.',
+    'Top de linha, baixa KM, pronto pra você.',
     'O tipo de carro que a gente quase não deixa ir embora.',
   ],
 }

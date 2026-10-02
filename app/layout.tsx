@@ -17,16 +17,15 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'Rei do SUV | SUVs premium topo de linha',
+    default: 'Rei do SUV | SUVs premium top de linha',
     template: '%s | Rei do SUV',
   },
   description:
-    'Curadoria de SUVs premium: Sorento, Santa Fe, Sportage e mais. Só versões topo de linha, baixa quilometragem e estado de showroom. Agende sua visita.',
+    'Curadoria de SUVs premium: Sorento, Santa Fe, Sportage e mais. Só versões top de linha, baixa quilometragem e estado de showroom. Agende sua visita.',
   openGraph: {
     type: 'website',
     locale: 'pt_BR',
     siteName: 'Rei do SUV',
-    images: [{ url: '/seed/sorento-1.jpg', width: 900, height: 1600 }],
   },
   icons: { icon: '/logo.jpg', apple: '/logo.jpg' },
 }

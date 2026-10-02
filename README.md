@@ -1,6 +1,6 @@
 # Rei do SUV — site + painel
 
-Landing page premium do **Rei do SUV Multimarcas** (estoque de SUVs topo de linha, sem preço, contato pelo WhatsApp) e painel interno para cadastrar veículos e fotos.
+Landing page premium do **Rei do SUV Multimarcas** (estoque de SUVs top de linha, sem preço, contato pelo WhatsApp) e painel interno para cadastrar veículos e fotos.
 
 Stack: Next.js 16 · React 19 · Tailwind CSS 4 · Supabase (banco, login e fotos).
 
