@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { HEADLINE_SUGGESTIONS, HIGHLIGHT_SUGGESTIONS } from '@/lib/copy'
 import type { Vehicle } from '@/lib/types'
 import { saveVehicle } from './save'
+import { createPhotoUpload } from './upload'
 
 const BUCKET = 'suv-veiculos'
 const MAX_DIM = 2000
@@ -30,15 +31,36 @@ async function compress(file: File): Promise<Blob> {
 const BRANDS = ['Kia', 'Hyundai', 'Toyota', 'Jeep', 'Volkswagen', 'Chevrolet', 'Mitsubishi', 'Honda']
 const MODELS = ['Sorento', 'Santa Fe', 'Sportage', 'Tucson', 'Compass', 'SW4', 'Tiguan']
 
-function Field({ name, label, defaultValue, list, type = 'text', required, inputMode }: {
-  name: string; label: string; defaultValue?: string | number | null; list?: string; type?: string; required?: boolean
+function Field({ name, label, defaultValue, type = 'text', required, inputMode }: {
+  name: string; label: string; defaultValue?: string | number | null; type?: string; required?: boolean
   inputMode?: 'numeric'
 }) {
   return (
     <div>
       <label className="label" htmlFor={name}>{label}{required && ' *'}</label>
-      <input id={name} name={name} type={type} list={list} required={required} inputMode={inputMode}
+      <input id={name} name={name} type={type} required={required} inputMode={inputMode}
         defaultValue={defaultValue ?? ''} className="field" />
+    </div>
+  )
+}
+
+/** Campo de texto livre + atalhos clicáveis (digitar sempre funciona). */
+function ChipInput({ name, label, value, onChange, options, required }: {
+  name: string; label: string; value: string; onChange: (v: string) => void; options: string[]; required?: boolean
+}) {
+  return (
+    <div>
+      <label className="label" htmlFor={name}>{label}{required && ' *'}</label>
+      <input id={name} name={name} required={required} value={value} onChange={(e) => onChange(e.target.value)}
+        placeholder="Digite ou toque numa opção" autoComplete="off" className="field" />
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {options.map((o) => (
+          <button type="button" key={o} onClick={() => onChange(o)}
+            className={`rounded-full border px-2.5 py-1 text-[11px] transition ${value === o ? 'border-gold bg-gold/15 text-gold-light' : 'border-white/10 text-muted hover:border-gold'}`}>
+            {o}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -55,7 +77,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 const chip = 'rounded-full border px-3 py-1.5 text-xs transition'
 
 export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
+  const [brand, setBrand] = useState(vehicle?.brand ?? '')
   const [model, setModel] = useState(vehicle?.model ?? '')
+  const [transmission, setTransmission] = useState(vehicle?.transmission ?? '')
+  const [fuel, setFuel] = useState(vehicle?.fuel ?? '')
+  const [drivetrain, setDrivetrain] = useState(vehicle?.drivetrain ?? '')
   const [headline, setHeadline] = useState(vehicle?.headline ?? '')
   const [highlights, setHighlights] = useState<string[]>(vehicle?.highlights ?? [])
   const [custom, setCustom] = useState('')
@@ -88,10 +114,11 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
       try {
         const blob = await compress(files[i])
         const ext = blob.type === 'image/webp' ? 'webp' : 'jpg'
-        const path = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`
-        const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: blob.type })
+        const signed = await createPhotoUpload(ext)
+        if ('error' in signed) throw new Error(signed.error)
+        const { error } = await supabase.storage.from(BUCKET).uploadToSignedUrl(signed.path, signed.token, blob, { contentType: blob.type })
         if (error) throw new Error(error.message)
-        urls.push(supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl)
+        urls.push(signed.publicUrl)
       } catch (err) {
         setUploadError(`Não consegui enviar "${files[i].name}": ${err instanceof Error ? err.message : 'erro'}`)
       }
@@ -122,19 +149,10 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
       <input type="hidden" name="photoUrls" value={JSON.stringify(photos)} />
       {highlights.map((h) => <input key={h} type="hidden" name="highlights" value={h} />)}
 
-      <datalist id="brands">{BRANDS.map((b) => <option key={b} value={b} />)}</datalist>
-      <datalist id="models">{MODELS.map((b) => <option key={b} value={b} />)}</datalist>
-      <datalist id="trans">{['Automático', 'Manual', 'CVT'].map((b) => <option key={b} value={b} />)}</datalist>
-      <datalist id="fuels">{['Gasolina', 'Flex', 'Diesel', 'Híbrido'].map((b) => <option key={b} value={b} />)}</datalist>
-      <datalist id="drives">{['4x2', '4x4', 'AWD'].map((b) => <option key={b} value={b} />)}</datalist>
-
       <Section title="Identificação">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field name="brand" label="Marca" list="brands" defaultValue={vehicle?.brand} required />
-          <div>
-            <label className="label" htmlFor="model">Modelo *</label>
-            <input id="model" name="model" list="models" required value={model} onChange={(e) => setModel(e.target.value)} className="field" />
-          </div>
+          <ChipInput name="brand" label="Marca" value={brand} onChange={setBrand} options={BRANDS} required />
+          <ChipInput name="model" label="Modelo (nome do carro)" value={model} onChange={setModel} options={MODELS} required />
           <Field name="version" label="Versão" defaultValue={vehicle?.version} />
           <Field name="engine" label="Motor" defaultValue={vehicle?.engine} />
         </div>
@@ -146,9 +164,9 @@ export function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
           <Field name="yearModel" label="Ano modelo" type="number" inputMode="numeric" defaultValue={vehicle?.yearModel} />
           <Field name="km" label="KM" type="number" inputMode="numeric" defaultValue={vehicle?.km} />
           <Field name="color" label="Cor" defaultValue={vehicle?.color} />
-          <Field name="transmission" label="Câmbio" list="trans" defaultValue={vehicle?.transmission} />
-          <Field name="fuel" label="Combustível" list="fuels" defaultValue={vehicle?.fuel} />
-          <Field name="drivetrain" label="Tração" list="drives" defaultValue={vehicle?.drivetrain} />
+          <ChipInput name="transmission" label="Câmbio" value={transmission} onChange={setTransmission} options={['Automático', 'Manual', 'CVT']} />
+          <ChipInput name="fuel" label="Combustível" value={fuel} onChange={setFuel} options={['Gasolina', 'Flex', 'Diesel', 'Híbrido']} />
+          <ChipInput name="drivetrain" label="Tração" value={drivetrain} onChange={setDrivetrain} options={['4x2', '4x4', 'AWD']} />
           <Field name="seats" label="Lugares" type="number" inputMode="numeric" defaultValue={vehicle?.seats} />
         </div>
       </Section>
