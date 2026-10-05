@@ -16,6 +16,7 @@ import {
   type VehicleFinance,
 } from '@/lib/finance'
 import { saveFinance } from '../actions'
+import { SubmitButton } from '@/components/painel/submit-button'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -222,9 +223,7 @@ export function FinanceForm({ initial, partners }: { initial: VehicleFinance; pa
       </aside>
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gold bg-coal/95 p-3 backdrop-blur md:static md:col-span-full md:border-0 md:bg-transparent md:p-0">
-        <button type="submit" className="btn-gold w-full rounded-xl px-6 py-3.5 text-sm font-bold uppercase tracking-widest md:w-auto">
-          Salvar financeiro
-        </button>
+        <SubmitButton className="btn-gold w-full rounded-xl px-6 py-3.5 text-sm font-bold uppercase tracking-widest md:w-auto">Salvar financeiro</SubmitButton>
       </div>
     </form>
   )

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { SECTION_LABELS, type SiteContent, type TitleText } from '@/lib/content'
 import { resetContent, saveContent } from './actions'
+import { SubmitButton } from '@/components/painel/submit-button'
 
 type Setter<T> = (next: T) => void
 
@@ -265,9 +266,7 @@ export function ContentEditor({ initial }: { initial: SiteContent }) {
         </Card>
 
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gold bg-coal/95 p-3 backdrop-blur md:static md:border-0 md:bg-transparent md:p-0">
-          <button type="submit" className="btn-gold w-full rounded-xl px-6 py-3.5 text-sm font-bold uppercase tracking-widest md:w-auto">
-            Salvar textos
-          </button>
+          <SubmitButton className="btn-gold w-full rounded-xl px-6 py-3.5 text-sm font-bold uppercase tracking-widest md:w-auto">Salvar textos</SubmitButton>
         </div>
       </form>
 

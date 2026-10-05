@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 export default async function TextosPage({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string }> }) {
   await requireAdmin()
   const { ok, erro } = await searchParams
-  const content = await getSiteContent()
+  const content = await getSiteContent({ fresh: true })
 
   return (
     <div className="mx-auto max-w-3xl">

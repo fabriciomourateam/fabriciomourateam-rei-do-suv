@@ -1,5 +1,6 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { readFreshJson } from '@/lib/storage-json'
 import {
   COST_CATEGORIES,
   DEFAULT_FINANCE_CONFIG,
@@ -28,9 +29,7 @@ export async function ensurePrivateBucket(): Promise<string | null> {
 async function readJson(path: string): Promise<unknown | null> {
   if (!canUseStorage()) return null
   try {
-    const { data, error } = await createAdminClient().storage.from(PRIVATE_BUCKET).download(path)
-    if (error || !data) return null
-    return JSON.parse(await data.text()) as unknown
+    return await readFreshJson(PRIVATE_BUCKET, path)
   } catch {
     return null
   }

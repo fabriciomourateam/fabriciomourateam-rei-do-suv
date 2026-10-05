@@ -69,7 +69,7 @@ export default async function FinanceiroVeiculoPage({
       </div>
       {ok && <p className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">Financeiro salvo.</p>}
       {erro && <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{erro}</p>}
-      <FinanceForm initial={initial} partners={config.partners} />
+      <FinanceForm key={initial.updatedAt || "novo"} initial={initial} partners={config.partners} />
     </div>
   )
 }

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requireAdmin } from '@/lib/auth'
 import { getFinanceConfig } from '@/lib/finance-store'
 import { saveConfig } from '../actions'
+import { SubmitButton } from '@/components/painel/submit-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,7 @@ export default async function FinanceiroConfigPage({ searchParams }: { searchPar
         ))}
         <p className="text-xs text-muted">Os percentuais precisam somar 100%. A divisão vale para o lucro de todos os carros.</p>
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gold bg-coal/95 p-3 backdrop-blur md:static md:border-0 md:bg-transparent md:p-0">
-          <button type="submit" className="btn-gold w-full rounded-xl px-6 py-3.5 text-sm font-bold uppercase tracking-widest md:w-auto">Salvar</button>
+          <SubmitButton className="btn-gold w-full rounded-xl px-6 py-3.5 text-sm font-bold uppercase tracking-widest md:w-auto">Salvar</SubmitButton>
         </div>
       </form>
     </div>
