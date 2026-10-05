@@ -3,17 +3,17 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import type { SiteContent } from '@/lib/content'
 import { CloseIcon } from './icons'
 import { WaButton } from './wa-button'
 
-const ALL_LINKS = [
-  { href: '/#estoque', label: 'Estoque', section: 'inventory' },
-  { href: '/#padrao', label: 'O Padrão Rei', section: 'pillars' },
-  { href: '/#visita', label: 'Visita', section: 'visit' },
-  { href: '/#duvidas', label: 'Dúvidas', section: 'faq' },
-]
-
-export function Header({ waHref, visibleIds }: { waHref: string; visibleIds?: string[] }) {
+export function Header({ waHref, visibleIds, content }: { waHref: string; visibleIds?: string[]; content: SiteContent['header'] }) {
+  const ALL_LINKS = [
+    { href: '/#estoque', label: content.nav.estoque, section: 'inventory' },
+    { href: '/#padrao', label: content.nav.padrao, section: 'pillars' },
+    { href: '/#visita', label: content.nav.visita, section: 'visit' },
+    { href: '/#duvidas', label: content.nav.duvidas, section: 'faq' },
+  ]
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
   const LINKS = ALL_LINKS.filter((l) => !visibleIds || visibleIds.includes(l.section))
@@ -54,7 +54,7 @@ export function Header({ waHref, visibleIds }: { waHref: string; visibleIds?: st
 
         <div className="flex items-center gap-2">
           <WaButton href={waHref} className="btn-gold hidden items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-semibold md:inline-flex">
-            Falar no WhatsApp
+            {content.whatsappButton}
           </WaButton>
           <button
             type="button"
@@ -95,7 +95,7 @@ export function Header({ waHref, visibleIds }: { waHref: string; visibleIds?: st
         </nav>
         <div className="p-6">
           <WaButton href={waHref} className="btn-gold flex w-full items-center justify-center gap-2 rounded-full py-4 text-sm font-semibold">
-            Falar no WhatsApp
+            {content.whatsappButton}
           </WaButton>
         </div>
       </div>

@@ -83,7 +83,7 @@ export function Hero({ featured, hero, visitHref }: { featured?: Vehicle; hero: 
                 className="group absolute inset-x-5 bottom-5 flex items-end justify-between gap-4 rounded-2xl border border-white/10 bg-black/45 p-4 backdrop-blur-md transition hover:border-[var(--gold)]/50"
               >
                 <div>
-                  <p className="text-[10px] tracking-[0.3em] text-gold-light uppercase">Em destaque</p>
+                  <p className="text-[10px] tracking-[0.3em] text-gold-light uppercase">{hero.featuredLabel}</p>
                   <p className="font-display mt-1.5 text-lg text-text">{vehicleName(featured)}</p>
                   <p className="text-[13px] text-text/60">
                     {[featured.version, yearLabel(featured)].filter(Boolean).join(' · ')}
@@ -104,7 +104,7 @@ export function Hero({ featured, hero, visitHref }: { featured?: Vehicle; hero: 
       </div>
 
       <a href="#estoque" className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-[10px] tracking-[0.3em] text-muted uppercase md:flex" aria-label="Rolar para o estoque">
-        Role
+        {hero.scrollLabel}
         <span className="h-10 w-px bg-gradient-to-b from-[var(--gold)] to-transparent" />
       </a>
     </section>

@@ -46,6 +46,7 @@ export default async function VehiclePage({ params }: Props) {
     ctaSold: content.inventory.ctaSold,
     vehicleTemplate: content.whatsapp.vehicle,
     soldTemplate: content.whatsapp.sold,
+    featuredBadge: content.inventory.featuredBadge,
   }
   const others = all.filter((o) => o.id !== v.id && o.status !== 'vendido').slice(0, 3)
   const specs = specList(v)
@@ -66,13 +67,13 @@ export default async function VehiclePage({ params }: Props) {
 
   return (
     <>
-      <Header waHref={waGeneral} visibleIds={visibleIds} />
+      <Header waHref={waGeneral} visibleIds={visibleIds} content={content.header} />
       <main className="px-5 pt-24 pb-20 md:px-8 md:pt-32">
         <div className="mx-auto max-w-7xl">
           <nav className="mb-6 flex items-center gap-2 text-[12px] tracking-[0.14em] text-muted uppercase">
-            <Link href="/" className="hover:text-gold-light">Início</Link>
+            <Link href="/" className="hover:text-gold-light">{vp.breadcrumbHome}</Link>
             <span className="text-gold/50">/</span>
-            <Link href="/#estoque" className="hover:text-gold-light">Estoque</Link>
+            <Link href="/#estoque" className="hover:text-gold-light">{vp.breadcrumbStock}</Link>
             <span className="text-gold/50">/</span>
             <span className="text-text/70">{v.model}</span>
           </nav>
@@ -157,7 +158,7 @@ export default async function VehiclePage({ params }: Props) {
                   <Rich text={vp.othersTitle} base="text-silver" accent="text-gold" />
                 </h2>
                 <Link href="/#estoque" className="hidden items-center gap-2 text-[13px] text-text/70 hover:text-gold-light sm:flex">
-                  Ver todo o estoque <ArrowIcon />
+                  {vp.seeAll} <ArrowIcon />
                 </Link>
               </div>
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-7">
@@ -177,9 +178,9 @@ export default async function VehiclePage({ params }: Props) {
         </WaButton>
       </div>
 
-      <Footer config={config} waHref={waGeneral} />
+      <Footer config={config} waHref={waGeneral} content={content.footer} />
       <div className="hidden sm:block">
-        <WaFloat waHref={waHref} />
+        <WaFloat waHref={waHref} label={content.header.whatsappButton} />
       </div>
       <RevealObserver />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />

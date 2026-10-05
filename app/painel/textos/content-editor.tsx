@@ -134,6 +134,8 @@ export function ContentEditor({ initial }: { initial: SiteContent }) {
           <Text label="Subtítulo" rows={3} value={c.hero.subtitle} onChange={(v) => upd('hero', { subtitle: v })} />
           <Text label="Botão principal" value={c.hero.ctaPrimary} onChange={(v) => upd('hero', { ctaPrimary: v })} />
           <Text label="Botão secundário" value={c.hero.ctaSecondary} onChange={(v) => upd('hero', { ctaSecondary: v })} />
+          <Text label="Etiqueta do carro em destaque" value={c.hero.featuredLabel} onChange={(v) => upd('hero', { featuredLabel: v })} />
+          <Text label="Texto da seta de rolagem" value={c.hero.scrollLabel} onChange={(v) => upd('hero', { scrollLabel: v })} />
           <p className="label">Itens de prova (pequenos, abaixo dos botões)</p>
           <TitleTextList items={c.hero.proof} onChange={(proof) => upd('hero', { proof })} addLabel="Adicionar item" />
         </Card>
@@ -162,6 +164,8 @@ export function ContentEditor({ initial }: { initial: SiteContent }) {
           <Text label="Botão do carro vendido" value={c.inventory.ctaSold} onChange={(v) => upd('inventory', { ctaSold: v })} />
           <Text label="Mensagem quando não há carros" rows={3} value={c.inventory.empty} onChange={(v) => upd('inventory', { empty: v })} />
           <Text label="Botão quando não há carros" value={c.inventory.emptyCta} onChange={(v) => upd('inventory', { emptyCta: v })} />
+          <Text label="Selo de destaque no carro" value={c.inventory.featuredBadge} onChange={(v) => upd('inventory', { featuredBadge: v })} />
+          <Text label="Filtro de todos os modelos" value={c.inventory.filterAll} onChange={(v) => upd('inventory', { filterAll: v })} />
         </Card>
 
         <Card title="O Padrão Rei">
@@ -184,6 +188,8 @@ export function ContentEditor({ initial }: { initial: SiteContent }) {
           <Text label="Título" rows={3} value={c.visit.title} onChange={(v) => upd('visit', { title: v })} />
           <Text label="Texto" rows={4} value={c.visit.body} onChange={(v) => upd('visit', { body: v })} />
           <Text label="Botão" value={c.visit.cta} onChange={(v) => upd('visit', { cta: v })} />
+          <Text label="Rótulo do local" value={c.visit.whereLabel} onChange={(v) => upd('visit', { whereLabel: v })} />
+          <Text label="Rótulo do horário" value={c.visit.whenLabel} onChange={(v) => upd('visit', { whenLabel: v })} />
         </Card>
 
         <Card title="Perguntas frequentes">
@@ -220,6 +226,30 @@ export function ContentEditor({ initial }: { initial: SiteContent }) {
           <Text label="Observação abaixo do botão" rows={2} value={c.vehiclePage.note} onChange={(v) => upd('vehiclePage', { note: v })} />
           <Text label="Título do quadro de pilares" value={c.vehiclePage.pillarsTitle} onChange={(v) => upd('vehiclePage', { pillarsTitle: v })} />
           <Text label="Título de outros carros" rows={2} value={c.vehiclePage.othersTitle} onChange={(v) => upd('vehiclePage', { othersTitle: v })} />
+          <Text label="Caminho: início" value={c.vehiclePage.breadcrumbHome} onChange={(v) => upd('vehiclePage', { breadcrumbHome: v })} />
+          <Text label="Caminho: estoque" value={c.vehiclePage.breadcrumbStock} onChange={(v) => upd('vehiclePage', { breadcrumbStock: v })} />
+          <Text label="Link de ver todo o estoque" value={c.vehiclePage.seeAll} onChange={(v) => upd('vehiclePage', { seeAll: v })} />
+        </Card>
+
+        <Card title="Menu do topo">
+          <Text label="Botão do WhatsApp (também no botão flutuante)" value={c.header.whatsappButton} onChange={(v) => setC({ ...c, header: { ...c.header, whatsappButton: v } })} />
+          <Text label="Link: Estoque" value={c.header.nav.estoque} onChange={(v) => setC({ ...c, header: { ...c.header, nav: { ...c.header.nav, estoque: v } } })} />
+          <Text label="Link: O Padrão Rei" value={c.header.nav.padrao} onChange={(v) => setC({ ...c, header: { ...c.header, nav: { ...c.header.nav, padrao: v } } })} />
+          <Text label="Link: Visita" value={c.header.nav.visita} onChange={(v) => setC({ ...c, header: { ...c.header, nav: { ...c.header.nav, visita: v } } })} />
+          <Text label="Link: Dúvidas" value={c.header.nav.duvidas} onChange={(v) => setC({ ...c, header: { ...c.header, nav: { ...c.header.nav, duvidas: v } } })} />
+        </Card>
+
+        <Card title="Rodapé">
+          <Text label="Frase ao lado do nome (antes da cidade)" value={c.footer.tagline} onChange={(v) => upd('footer', { tagline: v })} />
+          <Text label="Direitos autorais (depois de © e do ano)" value={c.footer.copyright} onChange={(v) => upd('footer', { copyright: v })} />
+          <Text label="Link da área da equipe" value={c.footer.teamLink} onChange={(v) => upd('footer', { teamLink: v })} />
+        </Card>
+
+        <Card title="Página não encontrada">
+          <Text label="Chamada pequena" value={c.notFound.eyebrow} onChange={(v) => upd('notFound', { eyebrow: v })} />
+          <Text label="Título" value={c.notFound.title} onChange={(v) => upd('notFound', { title: v })} />
+          <Text label="Subtítulo" value={c.notFound.subtitle} onChange={(v) => upd('notFound', { subtitle: v })} />
+          <Text label="Botão" value={c.notFound.cta} onChange={(v) => upd('notFound', { cta: v })} />
         </Card>
 
         <Card title="Mensagens do WhatsApp">

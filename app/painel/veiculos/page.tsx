@@ -46,6 +46,7 @@ function Actions({ v, first, last }: { v: Vehicle; first: boolean; last: boolean
         </form>
       ))}
       <Link href={`/painel/veiculos/${v.id}`} className="btn-ghost rounded-lg px-3 py-1.5 text-xs">Editar</Link>
+      <Link href={`/painel/financeiro/${v.id}`} className="btn-ghost rounded-lg px-3 py-1.5 text-xs">Financeiro</Link>
       <DeleteButton id={v.id} name={vehicleName(v)} />
     </div>
   )

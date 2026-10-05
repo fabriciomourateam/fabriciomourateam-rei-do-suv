@@ -145,12 +145,12 @@ export function Visit({ content, config, visitHref, photo }: { content: SiteCont
           </p>
           <dl data-reveal style={{ '--d': '240ms' } as CSS} className="mt-8 grid gap-4 border-t border-gold pt-6 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-[10px] tracking-[0.28em] text-muted uppercase">Onde</dt>
+              <dt className="text-[10px] tracking-[0.28em] text-muted uppercase">{content.whereLabel}</dt>
               <dd className="mt-1 text-text/85">{config.city}</dd>
               <dd className="text-[13px] text-text/50">{config.addressNote}</dd>
             </div>
             <div>
-              <dt className="text-[10px] tracking-[0.28em] text-muted uppercase">Quando</dt>
+              <dt className="text-[10px] tracking-[0.28em] text-muted uppercase">{content.whenLabel}</dt>
               <dd className="mt-1 text-text/85">{config.hours}</dd>
             </div>
           </dl>
@@ -237,7 +237,7 @@ function formatPhone(raw: string) {
   return d
 }
 
-export function Footer({ config, waHref }: { config: SiteConfig; waHref: string }) {
+export function Footer({ config, waHref, content }: { config: SiteConfig; waHref: string; content: SiteContent['footer'] }) {
   const ig = igUrl(config.instagram)
   const tt = ttUrl(config.tiktok)
   return (
@@ -247,7 +247,7 @@ export function Footer({ config, waHref }: { config: SiteConfig; waHref: string 
           <Image src="/logo.jpg" alt="Rei do SUV" width={64} height={64} className="h-16 w-16 rounded-full" />
           <div>
             <p className="font-display text-lg text-gold">Rei do SUV</p>
-            <p className="text-[13px] text-muted">SUVs premium · {config.city}</p>
+            <p className="text-[13px] text-muted">{content.tagline} · {config.city}</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -267,9 +267,9 @@ export function Footer({ config, waHref }: { config: SiteConfig; waHref: string 
         </div>
       </div>
       <div className="mx-auto mt-12 flex max-w-7xl flex-col gap-3 border-t border-white/[0.06] pt-6 text-[12px] text-muted md:flex-row md:justify-between">
-        <p>© {new Date().getFullYear()} Rei do SUV Multimarcas. Todos os direitos reservados.</p>
+        <p>© {new Date().getFullYear()} {content.copyright}</p>
         <Link href="/painel" className="transition hover:text-gold-light">
-          Área da equipe
+          {content.teamLink}
         </Link>
       </div>
     </footer>
@@ -277,12 +277,12 @@ export function Footer({ config, waHref }: { config: SiteConfig; waHref: string 
 }
 
 /** Botão flutuante (mobile) */
-export function WaFloat({ waHref }: { waHref: string }) {
+export function WaFloat({ waHref, label }: { waHref: string; label: string }) {
   return (
     <WaButton
       href={waHref}
       icon={false}
-      label="Falar no WhatsApp"
+      label={label}
       className="fixed right-4 bottom-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_12px_30px_-6px_rgba(37,211,102,0.55)] transition hover:scale-105 md:right-6 md:bottom-6"
     >
       <WhatsAppIcon className="h-7 w-7" />

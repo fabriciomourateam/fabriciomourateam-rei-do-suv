@@ -39,13 +39,15 @@ export interface SiteContent {
     ctaPrimary: string
     ctaSecondary: string
     proof: TitleText[]
+    featuredLabel: string
+    scrollLabel: string
   }
   marquee: string[]
   manifesto: { eyebrow: string; title: string; body: string }
-  inventory: { eyebrow: string; title: string; subtitle: string; empty: string; emptyCta: string; cta: string; ctaSold: string }
+  inventory: { eyebrow: string; title: string; subtitle: string; empty: string; emptyCta: string; cta: string; ctaSold: string; featuredBadge: string; filterAll: string }
   pillars: { eyebrow: string; title: string; subtitle: string; items: TitleText[] }
   steps: { eyebrow: string; title: string; items: TitleText[] }
-  visit: { eyebrow: string; title: string; body: string; cta: string }
+  visit: { eyebrow: string; title: string; body: string; cta: string; whereLabel: string; whenLabel: string }
   faq: { eyebrow: string; title: string; subtitle: string; items: { q: string; a: string }[] }
   finalCta: { title: string; subtitle: string; cta: string }
   vehiclePage: {
@@ -57,7 +59,13 @@ export interface SiteContent {
     note: string
     pillarsTitle: string
     othersTitle: string
+    breadcrumbHome: string
+    breadcrumbStock: string
+    seeAll: string
   }
+  header: { whatsappButton: string; nav: { estoque: string; padrao: string; visita: string; duvidas: string } }
+  footer: { tagline: string; copyright: string; teamLink: string }
+  notFound: { eyebrow: string; title: string; subtitle: string; cta: string }
   whatsapp: { general: string; visit: string; vehicle: string; sold: string }
 }
 
@@ -82,6 +90,8 @@ export const DEFAULT_CONTENT: SiteContent = {
       { title: 'Procedência', text: 'Histórico conferido' },
       { title: 'Hora marcada', text: 'O carro te espera' },
     ],
+    featuredLabel: 'Em destaque',
+    scrollLabel: 'Role',
   },
   marquee: ['Sorento', 'Santa Fe', 'Sportage', 'Teto panorâmico', 'Bancos em couro', 'Baixa quilometragem', 'Versões top de linha'],
   manifesto: {
@@ -97,6 +107,8 @@ export const DEFAULT_CONTENT: SiteContent = {
     emptyCta: 'Quero saber primeiro',
     cta: 'Quero esse',
     ctaSold: 'Quero um parecido',
+    featuredBadge: 'Destaque',
+    filterAll: 'Todos',
   },
   pillars: {
     eyebrow: 'O Padrão Rei',
@@ -124,6 +136,8 @@ export const DEFAULT_CONTENT: SiteContent = {
     title: 'Sem vitrine lotada.\n*Sem vendedor te cercando.*',
     body: 'Você agenda, o carro te espera. Atendemos com hora marcada em um espaço reservado, pra você olhar cada detalhe com calma — do jeito que uma compra desse nível merece.',
     cta: 'Agendar minha visita',
+    whereLabel: 'Onde',
+    whenLabel: 'Quando',
   },
   faq: {
     eyebrow: 'Dúvidas',
@@ -154,6 +168,24 @@ export const DEFAULT_CONTENT: SiteContent = {
     note: 'Valor e condições direto no WhatsApp. Resposta rápida, de gente de verdade.',
     pillarsTitle: 'O Padrão Rei',
     othersTitle: 'Outros SUVs *do Rei*',
+    breadcrumbHome: 'Início',
+    breadcrumbStock: 'Estoque',
+    seeAll: 'Ver todo o estoque',
+  },
+  header: {
+    whatsappButton: 'Falar no WhatsApp',
+    nav: { estoque: 'Estoque', padrao: 'O Padrão Rei', visita: 'Visita', duvidas: 'Dúvidas' },
+  },
+  footer: {
+    tagline: 'SUVs premium',
+    copyright: 'Rei do SUV Multimarcas. Todos os direitos reservados.',
+    teamLink: 'Área da equipe',
+  },
+  notFound: {
+    eyebrow: 'Página não encontrada',
+    title: 'Esse já saiu do pátio.',
+    subtitle: 'Mas o próximo pode ser o seu.',
+    cta: 'Ver o estoque',
   },
   whatsapp: {
     general: 'Olá! Vim pelo site do Rei do SUV e quero conhecer os carros disponíveis.',

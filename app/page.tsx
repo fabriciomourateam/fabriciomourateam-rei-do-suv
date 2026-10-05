@@ -53,7 +53,8 @@ export default async function Home() {
             <InventoryGrid
               vehicles={vehicles}
               whatsapp={config.whatsapp}
-              texts={{ cta: inv.cta, ctaSold: inv.ctaSold, vehicleTemplate: content.whatsapp.vehicle, soldTemplate: content.whatsapp.sold }}
+              filterAll={inv.filterAll}
+              texts={{ cta: inv.cta, ctaSold: inv.ctaSold, vehicleTemplate: content.whatsapp.vehicle, soldTemplate: content.whatsapp.sold, featuredBadge: inv.featuredBadge }}
             />
           ) : (
             <div className="mx-auto max-w-lg rounded-[22px] border border-gold bg-coal p-10 text-center">
@@ -77,15 +78,15 @@ export default async function Home() {
 
   return (
     <>
-      <Header waHref={waGeneral} visibleIds={visibleIds} />
+      <Header waHref={waGeneral} visibleIds={visibleIds} content={content.header} />
       <main>
         <Hero featured={featured} hero={content.hero} visitHref={waVisit} />
         {visibleSections.map((s) => (
           <Fragment key={s.id}>{blocks[s.id]}</Fragment>
         ))}
       </main>
-      <Footer config={config} waHref={waGeneral} />
-      <WaFloat waHref={waGeneral} />
+      <Footer config={config} waHref={waGeneral} content={content.footer} />
+      <WaFloat waHref={waGeneral} label={content.header.whatsappButton} />
       <RevealObserver />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     </>

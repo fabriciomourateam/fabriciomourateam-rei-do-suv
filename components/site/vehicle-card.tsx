@@ -11,6 +11,7 @@ export interface CardTexts {
   ctaSold: string
   vehicleTemplate: string
   soldTemplate: string
+  featuredBadge: string
 }
 
 export function VehicleCard({ v, whatsapp, texts, priority = false }: { v: Vehicle; whatsapp: string; texts: CardTexts; priority?: boolean }) {
@@ -39,7 +40,7 @@ export function VehicleCard({ v, whatsapp, texts, priority = false }: { v: Vehic
 
         <div className="absolute top-4 left-4 flex flex-wrap gap-2">
           {v.featured && !sold && (
-            <span className="bg-gold rounded-full px-3 py-1 text-[10px] font-bold tracking-[0.16em] text-ink uppercase">Destaque</span>
+            <span className="bg-gold rounded-full px-3 py-1 text-[10px] font-bold tracking-[0.16em] text-ink uppercase">{texts.featuredBadge}</span>
           )}
           {v.status !== 'disponivel' && (
             <span
