@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth'
-import { COST_CATEGORIES } from '@/lib/finance'
+import { COST_CATEGORIES, SALE_DEDUCTED, SPLIT_EQUAL } from '@/lib/finance'
 import { getFinanceConfig, saveFinanceConfig, saveVehicleFinance } from '@/lib/finance-store'
 import type { VehicleFinance } from '@/lib/finance'
 
@@ -46,11 +46,12 @@ export async function saveFinance(formData: FormData) {
   const data = parsed.data as Omit<VehicleFinance, 'updatedAt'>
   const config = await getFinanceConfig()
   const valid = new Set(config.partners.map((p) => p.id))
-  const clean = (v: string | null) => (v && valid.has(v) ? v : null)
+  const clean = (v: string | null) => (v && (valid.has(v) || v === SPLIT_EQUAL) ? v : null)
+  const cleanCost = (v: string | null) => (v === SALE_DEDUCTED ? v : clean(v))
   const toSave: VehicleFinance = {
     ...data,
     purchase: { ...data.purchase, paidBy: clean(data.purchase.paidBy) },
-    costs: data.costs.map((c) => ({ ...c, paidBy: clean(c.paidBy) })),
+    costs: data.costs.map((c) => ({ ...c, paidBy: cleanCost(c.paidBy) })),
     sale: { ...data.sale, receivedBy: clean(data.sale.receivedBy) },
     updatedAt: '',
   }

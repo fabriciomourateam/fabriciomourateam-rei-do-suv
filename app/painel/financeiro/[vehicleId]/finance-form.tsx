@@ -9,6 +9,8 @@ import {
   formatBRL,
   formatPct,
   parseBRL,
+  SALE_DEDUCTED,
+  SPLIT_EQUAL,
   type CostCategory,
   type Partner,
   type VehicleFinance,
@@ -40,13 +42,15 @@ function MoneyInput({ cents, onChange, id, placeholder = '0,00' }: {
   )
 }
 
-function PartnerSelect({ value, onChange, partners, id }: {
-  value: string | null; onChange: (v: string | null) => void; partners: Partner[]; id?: string
+function PartnerSelect({ value, onChange, partners, id, saleOption }: {
+  value: string | null; onChange: (v: string | null) => void; partners: Partner[]; id?: string; saleOption?: boolean
 }) {
   return (
     <select id={id} value={value ?? ''} onChange={(e) => onChange(e.target.value || null)} className="field">
       <option value="">—</option>
       {partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+      {partners.length > 1 && <option value={SPLIT_EQUAL}>Metade cada</option>}
+      {saleOption && <option value={SALE_DEDUCTED}>Descontado da venda</option>}
     </select>
   )
 }
@@ -121,7 +125,7 @@ export function FinanceForm({ initial, partners }: { initial: VehicleFinance; pa
                   </div>
                   <div>
                     <label className="label" htmlFor={`by-${c.id}`}>Pago por</label>
-                    <PartnerSelect id={`by-${c.id}`} partners={partners} value={c.paidBy} onChange={(v) => setCost(c.id, { paidBy: v })} />
+                    <PartnerSelect id={`by-${c.id}`} partners={partners} value={c.paidBy} onChange={(v) => setCost(c.id, { paidBy: v })} saleOption />
                   </div>
                   <div className="flex items-end justify-end">
                     <button type="button" onClick={() => removeCost(c.id)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-red-300 hover:border-red-400/50">Remover</button>
@@ -176,6 +180,17 @@ export function FinanceForm({ initial, partners }: { initial: VehicleFinance; pa
               <input id="sn" value={f.sale.note} onChange={(e) => setSale({ note: e.target.value })} className="field" />
             </div>
           </div>
+          {r.deductedFromSale > 0 && r.sale != null && (
+            <div className="mt-4 space-y-1 rounded-lg border border-white/10 p-3 text-sm">
+              <div className={row}><span className="text-muted">Valor da venda</span><span className="tabular-nums">{formatBRL(r.sale)}</span></div>
+              <div className={row}><span className="text-muted">Descontado da venda (custos)</span><span className="tabular-nums">− {formatBRL(r.deductedFromSale)}</span></div>
+              <div className={`${row} font-medium`}><span>Valor líquido recebido</span><span className="tabular-nums">{formatBRL(r.saleNet ?? 0)}</span></div>
+            </div>
+          )}
+          <p className="mt-3 text-xs text-muted">
+            Lucro = venda − compra − todos os custos (Auto Avaliar, transporte, manutenção…). A divisão entre os sócios é feita sobre esse lucro.
+            Se a Auto Avaliar ou outra taxa foi tirada direto do valor da venda, cadastre como custo com &quot;Pago por: Descontado da venda&quot;.
+          </p>
         </Section>
       </div>
 

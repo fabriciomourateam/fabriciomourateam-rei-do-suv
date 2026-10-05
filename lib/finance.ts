@@ -133,10 +133,33 @@ export interface FinanceResult {
   costsByCategory: Record<CostCategory, number>
   totalInvested: number
   sale: number | null
+  /** custos marcados como "descontado da venda" */
+  deductedFromSale: number
+  /** venda − custos descontados da venda (o que de fato entrou) */
+  saleNet: number | null
   profit: number | null
   marginPct: number | null
   roiPct: number | null
   perPartner: PartnerResult[]
+}
+
+/** Valor especial de "quem pagou/recebeu": dividido igualmente entre os sócios (metade cada). */
+export const SPLIT_EQUAL = 'meio'
+/** Valor especial de "quem pagou" de um custo: foi descontado direto do valor da venda. */
+export const SALE_DEDUCTED = 'venda'
+
+/** Divide em partes iguais (centavos); o resto vai para os primeiros. */
+export function splitEqually(amount: number, n: number): number[] {
+  if (n <= 0) return []
+  const base = Math.trunc(amount / n)
+  const out = Array.from({ length: n }, () => base)
+  let rest = amount - base * n
+  for (let i = 0; rest !== 0 && i < n; i++) {
+    const step = Math.sign(rest)
+    out[i] += step
+    rest -= step
+  }
+  return out
 }
 
 export function computeFinance(f: VehicleFinance, partners: Partner[]): FinanceResult {
@@ -160,16 +183,26 @@ export function computeFinance(f: VehicleFinance, partners: Partner[]): FinanceR
     if (pctSum === 100) shares[0] += profit - shares.reduce((a, b) => a + b, 0)
   }
 
+  // Custos descontados direto do valor da venda (ex.: taxa da Auto Avaliar cobrada na venda):
+  // ninguém pagou do bolso; quem recebeu a venda recebeu o valor já líquido.
+  const deductedFromSale = f.costs.reduce((a, c) => a + (c.paidBy === SALE_DEDUCTED ? c.amountCents : 0), 0)
+  const saleNet = sale == null ? null : sale - deductedFromSale
+
+  /** Quanto do valor `amount` cabe ao sócio `i`, conforme quem pagou/recebeu. */
+  const portion = (who: string | null, amount: number, i: number, p: Partner) => {
+    if (who === p.id) return amount
+    if (who === SPLIT_EQUAL) return splitEqually(amount, partners.length)[i] ?? 0
+    return 0
+  }
+
   const perPartner = partners.map((p, i) => {
-    const paid =
-      (f.purchase.paidBy === p.id ? purchase : 0) +
-      f.costs.reduce((a, c) => a + (c.paidBy === p.id ? c.amountCents : 0), 0)
-    const received = f.sale.receivedBy === p.id ? (sale ?? 0) : 0
+    const paid = portion(f.purchase.paidBy, purchase, i, p) + f.costs.reduce((a, c) => a + portion(c.paidBy, c.amountCents, i, p), 0)
+    const received = saleNet == null ? 0 : portion(f.sale.receivedBy, saleNet, i, p)
     const share = shares[i]
     return { partnerId: p.id, name: p.name, pct: p.pct, share, paid, received, settlement: paid + share - received }
   })
 
-  return { purchase, costsTotal, costsByCategory, totalInvested, sale, profit, marginPct, roiPct, perPartner }
+  return { purchase, costsTotal, costsByCategory, totalInvested, sale, deductedFromSale, saleNet, profit, marginPct, roiPct, perPartner }
 }
 
 export function formatPct(v: number | null): string {
