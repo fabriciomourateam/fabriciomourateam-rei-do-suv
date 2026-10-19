@@ -4,8 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { requireOwner } from '@/lib/auth'
-import { getFinanceConfig, listAllFinance, saveVehicleFinance } from '@/lib/finance-store'
-import { buildImport, historicalId } from '@/lib/personal-import'
+import { deleteVehicleFinance, getFinanceConfig, listAllFinance, saveVehicleFinance } from '@/lib/finance-store'
+import { buildImport, carKey, entryKey, historicalId } from '@/lib/personal-import'
 import { getLedger, saveLedger } from '@/lib/personal-store'
 import { ENTRY_TYPES, type EntryType, type LedgerEntry } from '@/lib/personal'
 
@@ -68,7 +68,10 @@ export interface ImportState {
   errors?: string[]
 }
 
-/** Importação aditiva: cria carros históricos e acrescenta movimentações. Nunca apaga nada. */
+/**
+ * Importação que não duplica: carro histórico com o mesmo nome é ATUALIZADO (mesmo registro);
+ * movimentação idêntica (data, tipo, sentido, valor, descrição) já existente é ignorada.
+ */
 export async function importar(_prev: ImportState | null, formData: FormData): Promise<ImportState> {
   const { user } = await requireOwner()
   const raw = String(formData.get('payload') ?? '')
@@ -83,24 +86,91 @@ export async function importar(_prev: ImportState | null, formData: FormData): P
   const plan = buildImport(json, config.partners)
   if (!plan.ok) return { ok: false, message: 'Confira os dados.', errors: plan.errors }
 
-  const taken = new Set((await listAllFinance()).map((f) => f.vehicleId))
+  const all = await listAllFinance()
+  const taken = new Set(all.map((f) => f.vehicleId))
+  const byName = new Map<string, string>()
+  for (const f of all.filter((f) => f.vehicleId.startsWith('hist-')).sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))) {
+    byName.set(carKey(f.snapshot.name), f.vehicleId)
+  }
+  let created = 0
+  let updated = 0
   for (const car of plan.cars) {
-    let id = historicalId(car.finance.snapshot.name)
-    while (taken.has(id)) id = historicalId(car.finance.snapshot.name)
-    taken.add(id)
+    const key = carKey(car.finance.snapshot.name)
+    let id = byName.get(key)
+    if (id) updated++
+    else {
+      id = historicalId(car.finance.snapshot.name)
+      while (taken.has(id)) id = historicalId(car.finance.snapshot.name)
+      taken.add(id)
+      byName.set(key, id)
+      created++
+    }
     const error = await saveVehicleFinance({ ...car.finance, vehicleId: id, updatedAt: '' })
     if (error) return { ok: false, message: `Erro ao salvar ${car.finance.snapshot.name}: ${error}` }
   }
+  let addedCount = 0
   if (plan.entries.length) {
     const ledger = await getLedger(user.id)
-    const added: LedgerEntry[] = plan.entries.map((e) => ({ id: randomUUID(), ...e }))
-    const error = await saveLedger(user.id, [...ledger.entries, ...added])
+    const seen = new Set(ledger.entries.map(entryKey))
+    const added: LedgerEntry[] = []
+    for (const e of plan.entries) {
+      const k = entryKey(e)
+      if (seen.has(k)) continue
+      seen.add(k)
+      added.push({ id: randomUUID(), ...e })
+    }
+    addedCount = added.length
+    if (added.length) {
+      const error = await saveLedger(user.id, [...ledger.entries, ...added])
+      if (error) return { ok: false, message: `Erro ao salvar as movimentações: ${error}` }
+    }
+  }
+  revalidatePath('/painel/meu')
+  revalidatePath('/painel/financeiro')
+  const skipped = plan.entries.length - addedCount
+  return {
+    ok: true,
+    message: `Pronto: ${created} carros novos, ${updated} atualizados; ${addedCount} movimentações novas${skipped ? ` (${skipped} já existiam, ignoradas)` : ''}.`,
+  }
+}
+
+/** Remove cópias: carros históricos com o mesmo nome (fica o mais recente) e movimentações idênticas. */
+export async function removerDuplicados(): Promise<ImportState> {
+  const { user } = await requireOwner()
+  const hist = (await listAllFinance())
+    .filter((f) => f.vehicleId.startsWith('hist-'))
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  const keep = new Set<string>()
+  let carsRemoved = 0
+  for (const f of hist) {
+    const k = carKey(f.snapshot.name)
+    if (!keep.has(k)) {
+      keep.add(k)
+      continue
+    }
+    const error = await deleteVehicleFinance(f.vehicleId)
+    if (error) return { ok: false, message: `Erro ao apagar ${f.snapshot.name}: ${error}` }
+    carsRemoved++
+  }
+  const ledger = await getLedger(user.id)
+  const seen = new Set<string>()
+  const unique = ledger.entries.filter((e) => {
+    const k = entryKey(e)
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+  const entriesRemoved = ledger.entries.length - unique.length
+  if (entriesRemoved) {
+    const error = await saveLedger(user.id, unique)
     if (error) return { ok: false, message: `Erro ao salvar as movimentações: ${error}` }
   }
   revalidatePath('/painel/meu')
   revalidatePath('/painel/financeiro')
   return {
     ok: true,
-    message: `Importado: ${plan.entries.length} movimentações e ${plan.cars.length} carros.`,
+    message: carsRemoved || entriesRemoved
+      ? `Limpo: ${carsRemoved} carros repetidos e ${entriesRemoved} movimentações repetidas removidos.`
+      : 'Nada repetido encontrado.',
   }
 }

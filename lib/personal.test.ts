@@ -142,3 +142,15 @@ describe('buildImport', () => {
     expect(historicalId('Kia Sorento 2014!', () => 'ab12')).toBe('hist-kia-sorento-2014-ab12')
   })
 })
+
+import { carKey, entryKey } from './personal-import'
+describe('chaves de deduplicação', () => {
+  it('carKey ignora acento, caixa e espaços', () => {
+    expect(carKey('  Hyundai  Santa Fé ')).toBe(carKey('hyundai santa fe'))
+  })
+  it('entryKey igual para a mesma movimentação', () => {
+    const e = { date: '2026-10-19', type: 'acerto_socio', direction: 'entrada', amountCents: 4665261, description: 'Sorento branca' }
+    expect(entryKey(e)).toBe(entryKey({ ...e, description: 'sorento  branca' }))
+    expect(entryKey(e)).not.toBe(entryKey({ ...e, amountCents: 1 }))
+  })
+})

@@ -174,3 +174,13 @@ export function historicalId(name: string, rand: () => string = () => Math.rando
   const slug = toSlug(name).slice(0, 40) || 'carro'
   return `hist-${slug}-${rand()}`
 }
+
+/** Chave para reconhecer o mesmo carro histórico entre importações (nome, sem acento/caixa). */
+export function carKey(name: string): string {
+  return name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+/** Chave para reconhecer a mesma movimentação entre importações. */
+export function entryKey(e: { date: string; type: string; direction: string; amountCents: number; description: string }): string {
+  return [e.date, e.type, e.direction, e.amountCents, carKey(e.description)].join('|')
+}

@@ -30,7 +30,7 @@ export default async function ImportarPage() {
       <h1 className="font-display text-gold mb-1 mt-2 text-2xl">Importar histórico</h1>
       <p className="text-xs text-muted">🔒 Só você vê esta área</p>
       <p className="mt-4 text-sm text-muted">
-        Cole aqui o JSON que o Claude preparou, confira o resumo e importe. A importação só acrescenta dados — nunca apaga nada.
+        Cole aqui o JSON que o Claude preparou, confira o resumo e importe. Pode importar o mesmo arquivo de novo sem medo: carro com o mesmo nome é atualizado e movimentação igual é ignorada.
         Os carros viram registros &quot;histórico&quot; no Financeiro.
       </p>
 

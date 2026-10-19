@@ -118,3 +118,11 @@ export async function listAllFinance(): Promise<VehicleFinance[]> {
     return []
   }
 }
+
+/** Apaga o arquivo financeiro de um carro. Retorna mensagem de erro ou null. */
+export async function deleteVehicleFinance(vehicleId: string): Promise<string | null> {
+  if (!canUseStorage()) return 'Supabase não configurado.'
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(vehicleId)) return 'Carro inválido.'
+  const { error } = await createAdminClient().storage.from(PRIVATE_BUCKET).remove([`${VEHICLES_DIR}/${vehicleId}.json`])
+  return error ? error.message : null
+}

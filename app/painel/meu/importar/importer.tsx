@@ -3,7 +3,7 @@ import { useActionState, useState } from 'react'
 import { SubmitButton } from '@/components/painel/submit-button'
 import { computeFinance, emptyVehicleFinance, formatBRL, type Partner } from '@/lib/finance'
 import { buildImport, type ImportResult } from '@/lib/personal-import'
-import { importar, type ImportState } from '../actions'
+import { importar, removerDuplicados, type ImportState } from '../actions'
 
 type Preview = { kind: 'error'; errors: string[] } | { kind: 'ok'; result: Extract<ImportResult, { ok: true }> }
 
@@ -11,6 +11,7 @@ export function Importer({ partners }: { partners: Partner[] }) {
   const [text, setText] = useState('')
   const [preview, setPreview] = useState<Preview | null>(null)
   const [state, action] = useActionState<ImportState | null, FormData>(importar, null)
+  const [cleanState, cleanAction] = useActionState<ImportState | null>(removerDuplicados, null)
 
   const run = () => {
     let json: unknown
@@ -26,6 +27,14 @@ export function Importer({ partners }: { partners: Partner[] }) {
 
   return (
     <div className="mt-6 space-y-5">
+      <div className="rounded-xl border border-white/10 p-4 text-sm">
+        <p className="text-muted">Importou mais de uma vez e ficou repetido? Este botão apaga as cópias (carros históricos com o mesmo nome e movimentações idênticas), mantendo uma de cada.</p>
+        <form action={cleanAction} className="mt-3">
+          <SubmitButton className="btn-ghost rounded-xl px-5 py-2.5 text-sm" pendingText="Limpando…">Remover duplicados</SubmitButton>
+        </form>
+        {cleanState && <p className={`mt-3 ${cleanState.ok ? 'text-emerald-300' : 'text-red-300'}`}>{cleanState.message}</p>}
+      </div>
+
       <div>
         <label className="label" htmlFor="payload-text">JSON para importar</label>
         <textarea id="payload-text" value={text} onChange={(e) => { setText(e.target.value); setPreview(null) }}
