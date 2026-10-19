@@ -15,7 +15,11 @@ export default async function UsuariosPage({ searchParams }: { searchParams: Pro
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <h1 className="font-display text-gold text-2xl">Usuários</h1>
-      {ok && <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">Feito ✓</p>}
+      {ok && (
+        <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+          {ok === 'existente' ? 'Esse e-mail já tinha conta: acesso ao painel liberado. A senha dele continua a mesma (por segurança, o painel não troca senha de conta existente).' : 'Feito ✓'}
+        </p>
+      )}
       {erro && <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{erro}</p>}
 
       <section className={box}>

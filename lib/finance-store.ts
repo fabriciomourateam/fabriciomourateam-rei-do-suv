@@ -76,6 +76,7 @@ function normalizeFinance(vehicleId: string, raw: unknown): VehicleFinance {
         amountCents: centsOrNull(c.amountCents) ?? 0,
         date: strOrNull(c.date),
         paidBy: strOrNull(c.paidBy),
+        shared: c.shared !== false,
       }))
     : []
   return {

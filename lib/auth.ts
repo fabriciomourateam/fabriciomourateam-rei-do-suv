@@ -21,3 +21,23 @@ export async function requireAdmin() {
   if (!admin) redirect('/login?erro=sem-acesso')
   return { supabase, user }
 }
+
+/**
+ * Dono(s) da empresa: acesso à área privada "Meu financeiro".
+ * Pode ser trocado pela variável OWNER_EMAILS (separados por vírgula).
+ */
+const OWNER_EMAILS = (process.env.OWNER_EMAILS || 'fabriciomouratreinador@gmail.com')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean)
+
+export function isOwnerEmail(email: string | null | undefined): boolean {
+  return !!email && OWNER_EMAILS.includes(email.toLowerCase())
+}
+
+/** Como requireAdmin, mas só deixa passar o dono. Outros admins voltam para o painel. */
+export async function requireOwner() {
+  const ctx = await requireAdmin()
+  if (!isOwnerEmail(ctx.user.email)) redirect('/painel')
+  return ctx
+}

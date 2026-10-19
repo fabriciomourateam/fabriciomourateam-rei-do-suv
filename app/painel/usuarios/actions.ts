@@ -1,7 +1,7 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { requireAdmin } from '@/lib/auth'
+import { isOwnerEmail, requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const go = (q: string) => redirect(`/painel/usuarios?${q}`)
@@ -17,6 +17,7 @@ export async function addAdmin(formData: FormData) {
 
   const admin = createAdminClient()
   let userId: string | null = null
+  let existed = false
   const created = await admin.auth.admin.createUser({ email, password, email_confirm: true })
   if (created.data.user) {
     userId = created.data.user.id
@@ -25,18 +26,19 @@ export async function addAdmin(formData: FormData) {
     if (!(msg.includes('already') || msg.includes('registered') || msg.includes('exists'))) {
       erro(created.error?.message ?? 'Não foi possível criar o usuário.')
     }
+    // Usuário já existe (pode ser de outro sistema no mesmo Supabase): só libera o acesso ao painel.
+    // NUNCA troca a senha de uma conta existente — senão um admin poderia assumir a conta de outro.
     const { data } = await admin.auth.admin.listUsers({ perPage: 1000 })
     const found = data?.users.find((u) => u.email?.toLowerCase() === email)
     if (!found) erro('Usuário já existe, mas não foi possível localizá-lo.')
     userId = found!.id
-    const upd = await admin.auth.admin.updateUserById(userId, { password })
-    if (upd.error) erro(upd.error.message)
+    existed = true
   }
 
   const { error } = await admin.from('suv_admins').upsert({ user_id: userId, email }, { onConflict: 'user_id' })
   if (error) erro(error.message)
   revalidatePath('/painel/usuarios')
-  go('ok=1')
+  go(existed ? 'ok=existente' : 'ok=1')
 }
 
 export async function removeAdmin(formData: FormData) {
@@ -44,6 +46,8 @@ export async function removeAdmin(formData: FormData) {
   const id = String(formData.get('userId') ?? '')
   if (!id) return
   if (id === user.id) erro('Você não pode remover o seu próprio acesso.')
+  const { data: target } = await supabase.from('suv_admins').select('email').eq('user_id', id).maybeSingle()
+  if (isOwnerEmail((target as { email?: string } | null)?.email)) erro('O acesso do dono não pode ser removido.')
   const { error } = await supabase.from('suv_admins').delete().eq('user_id', id)
   if (error) erro(error.message)
   revalidatePath('/painel/usuarios')

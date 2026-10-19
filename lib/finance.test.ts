@@ -92,4 +92,38 @@ describe('computeFinance', () => {
     const r = computeFinance(f, partners)
     expect(r.perPartner.map((p) => p.settlement)).toEqual([0, 0])
   })
+
+  it('custo não dividido: fora do lucro e do acerto, cobrado só de quem pagou', () => {
+    const f = emptyVehicleFinance('v1')
+    f.purchase = { amountCents: 6300000, date: null, paidBy: 'p1', note: '' }
+    f.costs = [
+      { id: 'c1', category: 'auto_avaliar', description: '', amountCents: 100000, date: null, paidBy: 'p1', shared: false },
+      { id: 'c2', category: 'comissao', description: '', amountCents: 150000, date: null, paidBy: 'p1', shared: true },
+      { id: 'c3', category: 'outros', description: '', amountCents: 790522, date: null, paidBy: 'p1' },
+    ]
+    f.sale = { amountCents: 8690000, date: null, receivedBy: 'p1', note: '' }
+    const r = computeFinance(f, partners)
+    expect(r.totalInvested).toBe(6300000 + 100000 + 150000 + 790522)
+    expect(r.sharedCostsTotal).toBe(940522)
+    expect(r.ownCostsTotal).toBe(100000)
+    expect(r.profit).toBe(1449478)
+    expect(r.perPartner.map((p) => p.share)).toEqual([724739, 724739])
+    expect(r.perPartner[0].ownCosts).toBe(100000)
+    expect(r.perPartner[0].realProfit).toBe(624739)
+    expect(r.perPartner[1].realProfit).toBe(724739)
+    // p1 pagou 63.000 + 9.405,22 (sem a taxa); recebeu 86.900 → deve 7.247,39 ao Élcio
+    expect(r.perPartner[0].paid).toBe(7240522)
+    expect(r.perPartner[0].settlement).toBe(-724739)
+    expect(r.perPartner[1].settlement).toBe(724739)
+  })
+
+  it('custo descontado da venda é sempre dividido', () => {
+    const f = emptyVehicleFinance('v1')
+    f.purchase = { amountCents: 10000000, date: null, paidBy: 'p1', note: '' }
+    f.costs = [{ id: 'c1', category: 'auto_avaliar', description: '', amountCents: 200000, date: null, paidBy: SALE_DEDUCTED, shared: false }]
+    f.sale = { amountCents: 12000000, date: null, receivedBy: 'p1', note: '' }
+    const r = computeFinance(f, partners)
+    expect(r.profit).toBe(1800000)
+    expect(r.ownCostsTotal).toBe(0)
+  })
 })

@@ -25,6 +25,7 @@ const financeSchema = z.object({
         amountCents: z.number().int().min(0).max(100_000_000_000),
         date,
         paidBy: who,
+        shared: z.boolean().optional(),
       }),
     )
     .max(200),

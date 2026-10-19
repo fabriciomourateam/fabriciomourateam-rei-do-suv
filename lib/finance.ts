@@ -43,6 +43,16 @@ export interface CostItem {
   amountCents: number
   date: string | null
   paidBy: string | null
+  /**
+   * true/ausente = custo dividido entre os sócios (reduz o lucro que é repartido).
+   * false = custo só de quem pagou: não entra na divisão do lucro nem no acerto.
+   */
+  shared?: boolean
+}
+
+/** Custo compartilhado? (padrão: sim). "Descontado da venda" é sempre compartilhado. */
+export function isSharedCost(c: CostItem): boolean {
+  return c.shared !== false || c.paidBy === SALE_DEDUCTED
 }
 
 export interface VehicleFinance {
@@ -121,8 +131,13 @@ export interface PartnerResult {
   name: string
   pct: number
   share: number
+  /** Desembolsado em coisas COMPARTILHADAS (compra + custos divididos). Não inclui custos só dele. */
   paid: number
+  /** Custos NÃO divididos que este sócio arcou sozinho */
+  ownCosts: number
   received: number
+  /** Parte do lucro menos os custos só dele */
+  realProfit: number
   /** positivo = deve RECEBER; negativo = deve PAGAR */
   settlement: number
 }
@@ -130,6 +145,10 @@ export interface PartnerResult {
 export interface FinanceResult {
   purchase: number
   costsTotal: number
+  /** custos divididos (entram na conta do lucro) */
+  sharedCostsTotal: number
+  /** custos não divididos (cada um é só de quem pagou) */
+  ownCostsTotal: number
   costsByCategory: Record<CostCategory, number>
   totalInvested: number
   sale: number | null
@@ -166,15 +185,20 @@ export function computeFinance(f: VehicleFinance, partners: Partner[]): FinanceR
   const purchase = f.purchase.amountCents ?? 0
   const costsByCategory = Object.fromEntries(COST_CATEGORIES.map((c) => [c, 0])) as Record<CostCategory, number>
   let costsTotal = 0
+  let sharedCostsTotal = 0
   for (const c of f.costs) {
     costsByCategory[c.category] += c.amountCents
     costsTotal += c.amountCents
+    if (isSharedCost(c)) sharedCostsTotal += c.amountCents
   }
+  const ownCostsTotal = costsTotal - sharedCostsTotal
+  // totalInvested (exibição) soma tudo; o lucro dividido só desconta compra + custos compartilhados.
   const totalInvested = purchase + costsTotal
   const sale = f.sale.amountCents
-  const profit = sale == null ? null : sale - totalInvested
+  const profit = sale == null ? null : sale - purchase - sharedCostsTotal
   const marginPct = profit != null && sale ? (profit / sale) * 100 : null
-  const roiPct = profit != null && totalInvested ? (profit / totalInvested) * 100 : null
+  const sharedInvested = purchase + sharedCostsTotal
+  const roiPct = profit != null && sharedInvested ? (profit / sharedInvested) * 100 : null
 
   // Divisão do lucro: arredonda cada parte para baixo (em direção a zero) e o resto vai pro primeiro sócio.
   const shares = partners.map((p) => (profit == null ? 0 : Math.trunc((profit * p.pct) / 100)))
@@ -196,13 +220,17 @@ export function computeFinance(f: VehicleFinance, partners: Partner[]): FinanceR
   }
 
   const perPartner = partners.map((p, i) => {
-    const paid = portion(f.purchase.paidBy, purchase, i, p) + f.costs.reduce((a, c) => a + portion(c.paidBy, c.amountCents, i, p), 0)
+    // Custos não divididos ficam de fora do `paid` (não são devolvidos no acerto): vão para `ownCosts`.
+    const paid =
+      portion(f.purchase.paidBy, purchase, i, p) +
+      f.costs.reduce((a, c) => a + (isSharedCost(c) ? portion(c.paidBy, c.amountCents, i, p) : 0), 0)
+    const ownCosts = f.costs.reduce((a, c) => a + (isSharedCost(c) ? 0 : portion(c.paidBy, c.amountCents, i, p)), 0)
     const received = saleNet == null ? 0 : portion(f.sale.receivedBy, saleNet, i, p)
     const share = shares[i]
-    return { partnerId: p.id, name: p.name, pct: p.pct, share, paid, received, settlement: paid + share - received }
+    return { partnerId: p.id, name: p.name, pct: p.pct, share, paid, ownCosts, received, realProfit: share - ownCosts, settlement: paid + share - received }
   })
 
-  return { purchase, costsTotal, costsByCategory, totalInvested, sale, deductedFromSale, saleNet, profit, marginPct, roiPct, perPartner }
+  return { purchase, costsTotal, sharedCostsTotal, ownCostsTotal, costsByCategory, totalInvested, sale, deductedFromSale, saleNet, profit, marginPct, roiPct, perPartner }
 }
 
 export function formatPct(v: number | null): string {

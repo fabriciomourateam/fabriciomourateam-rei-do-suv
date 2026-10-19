@@ -63,7 +63,7 @@ export default async function FinanceiroVeiculoPage({
         {row ? (
           <span className={`rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider ${BADGE[row.status]}`}>{STATUS_LABEL[row.status]}</span>
         ) : (
-          <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted">Removido do site</span>
+          <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted">{vehicleId.startsWith('hist-') ? 'Histórico' : 'Removido do site'}</span>
         )}
         {snapshot.year && <span className="text-sm text-muted">{snapshot.year}</span>}
       </div>

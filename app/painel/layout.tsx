@@ -1,8 +1,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { requireAdmin } from '@/lib/auth'
+import { isOwnerEmail, requireAdmin } from '@/lib/auth'
 
-const LINKS = [
+const BASE_LINKS = [
   { href: '/painel', label: 'Visão geral' },
   { href: '/painel/veiculos', label: 'Veículos' },
   { href: '/painel/veiculos/novo', label: 'Novo veículo' },
@@ -15,7 +15,11 @@ const LINKS = [
 const navCls = 'whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted transition hover:bg-white/5 hover:text-gold-light'
 
 export default async function PainelLayout({ children }: { children: React.ReactNode }) {
-  await requireAdmin()
+  const { user } = await requireAdmin()
+  // "Meu financeiro" só aparece para o dono; a página também se protege com requireOwner().
+  const LINKS = isOwnerEmail(user.email)
+    ? [...BASE_LINKS.slice(0, 4), { href: '/painel/meu', label: 'Meu financeiro 🔒' }, ...BASE_LINKS.slice(4)]
+    : BASE_LINKS
 
   return (
     <div className="min-h-screen bg-ink text-text md:flex">

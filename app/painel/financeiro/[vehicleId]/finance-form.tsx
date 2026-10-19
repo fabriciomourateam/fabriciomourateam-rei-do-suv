@@ -5,10 +5,8 @@ import {
   COST_LABEL,
   COST_SHORT,
   computeFinance,
-  formatAmountInput,
   formatBRL,
   formatPct,
-  parseBRL,
   SALE_DEDUCTED,
   SPLIT_EQUAL,
   type CostCategory,
@@ -16,6 +14,7 @@ import {
   type VehicleFinance,
 } from '@/lib/finance'
 import { saveFinance } from '../actions'
+import { MoneyInput } from '@/components/painel/money-input'
 import { SubmitButton } from '@/components/painel/submit-button'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -24,22 +23,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="font-display text-gold mb-4 text-sm">{title}</h2>
       {children}
     </section>
-  )
-}
-
-/** Campo de dinheiro: digita livre, formata ao sair do campo. */
-function MoneyInput({ cents, onChange, id, placeholder = '0,00' }: {
-  cents: number | null; onChange: (c: number | null) => void; id?: string; placeholder?: string
-}) {
-  const [text, setText] = useState(formatAmountInput(cents))
-  return (
-    <div className="relative">
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted">R$</span>
-      <input id={id} inputMode="decimal" autoComplete="off" placeholder={placeholder} value={text}
-        onChange={(e) => { setText(e.target.value); onChange(parseBRL(e.target.value)) }}
-        onBlur={() => setText(formatAmountInput(parseBRL(text)))}
-        className="field !pl-9 text-right tabular-nums" />
-    </div>
   )
 }
 
@@ -67,7 +50,7 @@ export function FinanceForm({ initial, partners }: { initial: VehicleFinance; pa
   const setCost = (id: string, p: Partial<VehicleFinance['costs'][number]>) =>
     setF((s) => ({ ...s, costs: s.costs.map((c) => (c.id === id ? { ...c, ...p } : c)) }))
   const addCost = (category: CostCategory) =>
-    setF((s) => ({ ...s, costs: [...s.costs, { id: newId(), category, description: '', amountCents: 0, date: null, paidBy: null }] }))
+    setF((s) => ({ ...s, costs: [...s.costs, { id: newId(), category, description: '', amountCents: 0, date: null, paidBy: null, shared: true }] }))
   const removeCost = (id: string) => setF((s) => ({ ...s, costs: s.costs.filter((c) => c.id !== id) }))
 
   const profitCls = r.profit == null ? 'text-text' : r.profit >= 0 ? 'text-emerald-400' : 'text-red-400'
@@ -128,7 +111,17 @@ export function FinanceForm({ initial, partners }: { initial: VehicleFinance; pa
                     <label className="label" htmlFor={`by-${c.id}`}>Pago por</label>
                     <PartnerSelect id={`by-${c.id}`} partners={partners} value={c.paidBy} onChange={(v) => setCost(c.id, { paidBy: v })} saleOption />
                   </div>
-                  <div className="flex items-end justify-end">
+                  <div className="sm:col-span-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={c.shared !== false || c.paidBy === SALE_DEDUCTED} disabled={c.paidBy === SALE_DEDUCTED}
+                        onChange={(e) => setCost(c.id, { shared: e.target.checked })} className="h-4 w-4 accent-[var(--gold)]" />
+                      Dividir entre os sócios
+                    </label>
+                    {c.shared === false && c.paidBy !== SALE_DEDUCTED && (
+                      <p className="mt-1 text-xs text-muted">Custo só de quem pagou — não entra na divisão</p>
+                    )}
+                  </div>
+                  <div className="flex items-end justify-end sm:col-span-2">
                     <button type="button" onClick={() => removeCost(c.id)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-red-300 hover:border-red-400/50">Remover</button>
                   </div>
                 </div>
@@ -189,7 +182,8 @@ export function FinanceForm({ initial, partners }: { initial: VehicleFinance; pa
             </div>
           )}
           <p className="mt-3 text-xs text-muted">
-            Lucro = venda − compra − todos os custos (Auto Avaliar, transporte, manutenção…). A divisão entre os sócios é feita sobre esse lucro.
+            Lucro = venda − compra − custos divididos (Auto Avaliar, transporte, manutenção…). A divisão entre os sócios é feita sobre esse lucro.
+            Custos desmarcados em &quot;Dividir entre os sócios&quot; ficam só com quem pagou.
             Se a Auto Avaliar ou outra taxa foi tirada direto do valor da venda, cadastre como custo com &quot;Pago por: Descontado da venda&quot;.
           </p>
         </Section>
@@ -211,6 +205,12 @@ export function FinanceForm({ initial, partners }: { initial: VehicleFinance; pa
             <p className="text-sm font-medium">{p.name} <span className="text-muted">· {p.pct.toLocaleString('pt-BR')}%</span></p>
             <div className={row}><span className="text-muted">Parte do lucro</span><span className="tabular-nums">{r.profit == null ? '—' : formatBRL(p.share)}</span></div>
             <div className={row}><span className="text-muted">Pagou</span><span className="tabular-nums">{formatBRL(p.paid)}</span></div>
+            {p.ownCosts > 0 && (
+              <>
+                <div className={row}><span className="text-muted">Custos só de {p.name}</span><span className="tabular-nums">{formatBRL(p.ownCosts)}</span></div>
+                <div className={row}><span className="text-muted">Lucro real</span><span className="tabular-nums">{r.profit == null ? '—' : formatBRL(p.realProfit)}</span></div>
+              </>
+            )}
             <div className={row}><span className="text-muted">Recebeu</span><span className="tabular-nums">{formatBRL(p.received)}</span></div>
             {r.profit != null && (
               <p className={`mt-1 text-sm font-medium ${p.settlement > 0 ? 'text-emerald-400' : p.settlement < 0 ? 'text-red-400' : 'text-muted'}`}>

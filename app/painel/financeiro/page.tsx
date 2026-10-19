@@ -36,11 +36,11 @@ const BADGE: Record<VehicleStatus, string> = {
 const tone = (n: number | null) => (n == null ? '' : n >= 0 ? 'text-emerald-400' : 'text-red-400')
 const money = (n: number | null | undefined) => (n == null ? '—' : formatBRL(n))
 
-function StatusTag({ status }: { status: VehicleStatus | null }) {
+function StatusTag({ status, id }: { status: VehicleStatus | null; id: string }) {
   return status ? (
     <span className={`rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider ${BADGE[status]}`}>{STATUS_LABEL[status]}</span>
   ) : (
-    <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted">removido do site</span>
+    <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted">{id.startsWith('hist-') ? 'histórico' : 'removido do site'}</span>
   )
 }
 
@@ -160,7 +160,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
                 {items.map((i) => (
                   <tr key={i.id}>
                     <td className="px-4 py-3"><span className="font-medium">{i.name}</span> <span className="text-muted">{[i.version, i.year].filter(Boolean).join(' · ')}</span></td>
-                    <td className="px-3 py-3"><StatusTag status={i.status} /></td>
+                    <td className="px-3 py-3"><StatusTag status={i.status} id={i.id} /></td>
                     <td className={`px-3 py-3 ${num}`}>{money(i.finance?.purchase.amountCents)}</td>
                     <td className={`px-3 py-3 ${num}`}>{i.result ? money(i.result.costsTotal) : '—'}</td>
                     <td className={`px-3 py-3 ${num}`}>{i.result ? money(i.result.totalInvested) : '—'}</td>
@@ -183,7 +183,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
                     <p className="truncate font-medium">{i.name} <span className="text-muted">{i.version}</span></p>
                     <p className="text-xs text-muted">{i.year}</p>
                   </div>
-                  <StatusTag status={i.status} />
+                  <StatusTag status={i.status} id={i.id} />
                 </div>
                 {i.result ? (
                   <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
