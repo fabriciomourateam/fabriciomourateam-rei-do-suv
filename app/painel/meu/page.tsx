@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { requireOwner } from '@/lib/auth'
 import { formatBRL, monthLabel, monthOf } from '@/lib/finance'
-import { getFinanceConfig, listAllFinance } from '@/lib/finance-store'
-import { getLedger } from '@/lib/personal-store'
+import { getFinanceConfig } from '@/lib/finance-store'
+import { getLedger, getOwnerCars } from '@/lib/personal-store'
 import {
   ENTRY_SHORT,
   inMonth,
@@ -29,7 +29,7 @@ const fmtDate = (d: string) => d.split('-').reverse().join('/')
 export default async function MeuFinanceiroPage({ searchParams }: { searchParams: Promise<{ mes?: string; ok?: string; erro?: string }> }) {
   const { user } = await requireOwner()
   const { mes, ok, erro } = await searchParams
-  const [config, finances, ledger] = await Promise.all([getFinanceConfig(), listAllFinance(), getLedger(user.id)])
+  const [config, finances, ledger] = await Promise.all([getFinanceConfig(), getOwnerCars(user.id), getLedger(user.id)])
 
   const partner = config.partners.find((p) => p.id !== OWNER_PARTNER_ID)?.name ?? 'Sócio'
   const allCars = ownerCarSummary(finances, config.partners, OWNER_PARTNER_ID)
@@ -120,7 +120,6 @@ export default async function MeuFinanceiroPage({ searchParams }: { searchParams
                   <th className={`px-3 py-3 font-normal ${num}`}>Custos só meus</th>
                   <th className={`px-3 py-3 font-normal ${num}`}>Lucro real</th>
                   <th className={`px-3 py-3 font-normal ${num}`}>Acerto</th>
-                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -136,7 +135,6 @@ export default async function MeuFinanceiroPage({ searchParams }: { searchParams
                     <td className={`px-3 py-3 ${num} ${tone(c.mySettlement)}`}>
                       {c.mySettlement == null ? '—' : c.mySettlement === 0 ? 'Quites' : c.mySettlement > 0 ? `${partner} deve ${formatBRL(c.mySettlement)}` : `Devo ${formatBRL(-c.mySettlement)}`}
                     </td>
-                    <td className="px-4 py-3 text-right"><Link href={`/painel/financeiro/${c.vehicleId}`} className="text-gold-light hover:underline">Abrir</Link></td>
                   </tr>
                 ))}
               </tbody>
@@ -161,7 +159,6 @@ export default async function MeuFinanceiroPage({ searchParams }: { searchParams
                     {c.mySettlement == null ? '—' : settlementText(c.mySettlement, partner, formatBRL)}
                   </dd>
                 </dl>
-                <Link href={`/painel/financeiro/${c.vehicleId}`} className="btn-ghost mt-3 inline-block rounded-lg px-4 py-2 text-xs">Abrir</Link>
               </li>
             ))}
           </ul>

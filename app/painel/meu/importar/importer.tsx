@@ -28,7 +28,7 @@ export function Importer({ partners }: { partners: Partner[] }) {
   return (
     <div className="mt-6 space-y-5">
       <div className="rounded-xl border border-white/10 p-4 text-sm">
-        <p className="text-muted">Importou mais de uma vez e ficou repetido? Este botão apaga as cópias (carros históricos com o mesmo nome e movimentações idênticas), mantendo uma de cada.</p>
+        <p className="text-muted">Importou mais de uma vez e ficou repetido? Este botão apaga as cópias (carros com o mesmo nome e movimentações idênticas), mantendo uma de cada.</p>
         <form action={cleanAction} className="mt-3">
           <SubmitButton className="btn-ghost rounded-xl px-5 py-2.5 text-sm" pendingText="Limpando…">Remover duplicados</SubmitButton>
         </form>

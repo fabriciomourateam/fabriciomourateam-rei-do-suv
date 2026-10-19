@@ -62,7 +62,7 @@ function normalizeConfig(raw: unknown): FinanceConfig {
   return partners.length === 2 ? { partners } : DEFAULT_FINANCE_CONFIG
 }
 
-function normalizeFinance(vehicleId: string, raw: unknown): VehicleFinance {
+export function normalizeFinance(vehicleId: string, raw: unknown): VehicleFinance {
   const base = emptyVehicleFinance(vehicleId)
   if (!isRec(raw)) return base
   const snap = isRec(raw.snapshot) ? raw.snapshot : {}

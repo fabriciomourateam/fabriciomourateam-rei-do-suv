@@ -4,9 +4,9 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { requireOwner } from '@/lib/auth'
-import { deleteVehicleFinance, getFinanceConfig, listAllFinance, saveVehicleFinance } from '@/lib/finance-store'
+import { getFinanceConfig } from '@/lib/finance-store'
 import { buildImport, carKey, entryKey, historicalId } from '@/lib/personal-import'
-import { getLedger, saveLedger } from '@/lib/personal-store'
+import { getLedger, getOwnerCars, saveLedger, saveOwnerCars } from '@/lib/personal-store'
 import { ENTRY_TYPES, type EntryType, type LedgerEntry } from '@/lib/personal'
 
 const MES = /^\d{4}-\d{2}$/
@@ -86,27 +86,28 @@ export async function importar(_prev: ImportState | null, formData: FormData): P
   const plan = buildImport(json, config.partners)
   if (!plan.ok) return { ok: false, message: 'Confira os dados.', errors: plan.errors }
 
-  const all = await listAllFinance()
-  const taken = new Set(all.map((f) => f.vehicleId))
-  const byName = new Map<string, string>()
-  for (const f of all.filter((f) => f.vehicleId.startsWith('hist-')).sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))) {
-    byName.set(carKey(f.snapshot.name), f.vehicleId)
-  }
+  const cars = await getOwnerCars(user.id)
+  const taken = new Set(cars.map((f) => f.vehicleId))
   let created = 0
   let updated = 0
+  const now = new Date().toISOString()
   for (const car of plan.cars) {
     const key = carKey(car.finance.snapshot.name)
-    let id = byName.get(key)
-    if (id) updated++
-    else {
-      id = historicalId(car.finance.snapshot.name)
+    const i = cars.findIndex((f) => carKey(f.snapshot.name) === key)
+    if (i >= 0) {
+      cars[i] = { ...car.finance, vehicleId: cars[i].vehicleId, updatedAt: now }
+      updated++
+    } else {
+      let id = historicalId(car.finance.snapshot.name)
       while (taken.has(id)) id = historicalId(car.finance.snapshot.name)
       taken.add(id)
-      byName.set(key, id)
+      cars.push({ ...car.finance, vehicleId: id, updatedAt: now })
       created++
     }
-    const error = await saveVehicleFinance({ ...car.finance, vehicleId: id, updatedAt: '' })
-    if (error) return { ok: false, message: `Erro ao salvar ${car.finance.snapshot.name}: ${error}` }
+  }
+  if (plan.cars.length) {
+    const error = await saveOwnerCars(user.id, cars)
+    if (error) return { ok: false, message: `Erro ao salvar os carros: ${error}` }
   }
   let addedCount = 0
   if (plan.entries.length) {
@@ -126,7 +127,6 @@ export async function importar(_prev: ImportState | null, formData: FormData): P
     }
   }
   revalidatePath('/painel/meu')
-  revalidatePath('/painel/financeiro')
   const skipped = plan.entries.length - addedCount
   return {
     ok: true,
@@ -134,23 +134,23 @@ export async function importar(_prev: ImportState | null, formData: FormData): P
   }
 }
 
-/** Remove cópias: carros históricos com o mesmo nome (fica o mais recente) e movimentações idênticas. */
+/** Remove cópias no Meu financeiro: carros com o mesmo nome (fica o mais recente) e movimentações idênticas. */
 export async function removerDuplicados(): Promise<ImportState> {
   const { user } = await requireOwner()
-  const hist = (await listAllFinance())
-    .filter((f) => f.vehicleId.startsWith('hist-'))
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  const cars = await getOwnerCars(user.id)
   const keep = new Set<string>()
-  let carsRemoved = 0
-  for (const f of hist) {
-    const k = carKey(f.snapshot.name)
-    if (!keep.has(k)) {
+  const uniqueCars = [...cars]
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .filter((f) => {
+      const k = carKey(f.snapshot.name)
+      if (keep.has(k)) return false
       keep.add(k)
-      continue
-    }
-    const error = await deleteVehicleFinance(f.vehicleId)
-    if (error) return { ok: false, message: `Erro ao apagar ${f.snapshot.name}: ${error}` }
-    carsRemoved++
+      return true
+    })
+  const carsRemoved = cars.length - uniqueCars.length
+  if (carsRemoved) {
+    const error = await saveOwnerCars(user.id, uniqueCars)
+    if (error) return { ok: false, message: `Erro ao salvar os carros: ${error}` }
   }
   const ledger = await getLedger(user.id)
   const seen = new Set<string>()
@@ -166,7 +166,6 @@ export async function removerDuplicados(): Promise<ImportState> {
     if (error) return { ok: false, message: `Erro ao salvar as movimentações: ${error}` }
   }
   revalidatePath('/painel/meu')
-  revalidatePath('/painel/financeiro')
   return {
     ok: true,
     message: carsRemoved || entriesRemoved

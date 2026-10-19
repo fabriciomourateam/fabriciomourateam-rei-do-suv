@@ -1,7 +1,8 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { readFreshJson } from '@/lib/storage-json'
-import { ensurePrivateBucket, PRIVATE_BUCKET } from '@/lib/finance-store'
+import { ensurePrivateBucket, normalizeFinance, PRIVATE_BUCKET } from '@/lib/finance-store'
+import type { VehicleFinance } from './finance'
 import { ENTRY_TYPES, type Direction, type EntryType, type LedgerEntry, type PersonalLedger } from './personal'
 
 const canUseStorage = () => Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
@@ -59,6 +60,39 @@ export async function saveLedger(userId: string, entries: LedgerEntry[]): Promis
   if (bucketError) return bucketError
   const value: PersonalLedger = { entries, updatedAt: new Date().toISOString() }
   const body = new Blob([JSON.stringify(value)], { type: 'application/json' })
+  const { error } = await createAdminClient()
+    .storage.from(PRIVATE_BUCKET)
+    .upload(path, body, { upsert: true, contentType: 'application/json', cacheControl: '0' })
+  return error ? error.message : null
+}
+
+/**
+ * Carros do "Meu financeiro": arquivo PRIVADO do dono (pessoal/{id}/carros.json).
+ * Separado do Financeiro compartilhado do painel — nada daqui aparece para o sócio.
+ */
+function carsPath(userId: string): string | null {
+  return SAFE_ID.test(userId) ? `pessoal/${userId}/carros.json` : null
+}
+
+export async function getOwnerCars(userId: string): Promise<VehicleFinance[]> {
+  const path = carsPath(userId)
+  if (!path || !canUseStorage()) return []
+  try {
+    const raw = await readFreshJson(PRIVATE_BUCKET, path)
+    if (!isRec(raw) || !Array.isArray(raw.cars)) return []
+    return raw.cars.filter(isRec).map((c, i) => normalizeFinance(str(c.vehicleId) || `meu-${i}`, c))
+  } catch {
+    return []
+  }
+}
+
+export async function saveOwnerCars(userId: string, cars: VehicleFinance[]): Promise<string | null> {
+  const path = carsPath(userId)
+  if (!path) return 'Usuário inválido.'
+  if (!canUseStorage()) return 'Supabase não configurado.'
+  const bucketError = await ensurePrivateBucket()
+  if (bucketError) return bucketError
+  const body = new Blob([JSON.stringify({ cars, updatedAt: new Date().toISOString() })], { type: 'application/json' })
   const { error } = await createAdminClient()
     .storage.from(PRIVATE_BUCKET)
     .upload(path, body, { upsert: true, contentType: 'application/json', cacheControl: '0' })
