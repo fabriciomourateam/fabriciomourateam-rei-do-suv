@@ -154,3 +154,17 @@ describe('chaves de deduplicação', () => {
     expect(entryKey(e)).not.toBe(entryKey({ ...e, amountCents: 1 }))
   })
 })
+
+import { daysBetween, monthlyReturnPct } from './personal'
+describe('prazo e rendimento', () => {
+  it('dias entre compra e venda', () => {
+    expect(daysBetween('2026-06-26', '2026-08-17')).toBe(52)
+    expect(daysBetween('2026-08-17', '2026-06-26')).toBeNull()
+    expect(daysBetween(null, '2026-08-17')).toBeNull()
+  })
+  it('% ao mês simples sobre o capital', () => {
+    expect(monthlyReturnPct(3000, 100000, 30)).toBeCloseTo(3)
+    expect(monthlyReturnPct(3000, 100000, 60)).toBeCloseTo(1.5)
+    expect(monthlyReturnPct(null, 100000, 30)).toBeNull()
+  })
+})

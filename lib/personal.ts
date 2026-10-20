@@ -1,5 +1,5 @@
 /** Financeiro pessoal do dono (puro, sem I/O): valores em CENTAVOS inteiros, sempre positivos nas movimentações. */
-import { computeFinance, monthOf, type Partner, type VehicleFinance } from './finance'
+import { COST_LABEL, computeFinance, isSharedCost, monthOf, type Partner, type VehicleFinance } from './finance'
 
 export type EntryType = 'aporte' | 'retirada' | 'pagamento' | 'recebimento' | 'acerto_socio' | 'outro'
 export type Direction = 'saida' | 'entrada'
@@ -112,7 +112,35 @@ export interface OwnerCar {
   mySettlement: number | null
   /** dinheiro parado: o que coloquei num carro ainda não vendido (null se vendido) */
   capitalEmpatado: number | null
+  purchaseDate: string | null
+  /** valor da venda (null se não vendido) */
+  saleAmount: number | null
+  /** lucro total do carro, antes de dividir (null se não vendido) */
+  totalProfit: number | null
+  /** dias entre compra e venda (null sem as duas datas) */
+  days: number | null
+  /** lucro real ÷ meu dinheiro no carro (compra + custos), por mês de 30 dias, em % (null sem dados) */
+  monthlyPct: number | null
+  /** custos que só eu banquei, item a item (para o tooltip das taxas) */
+  myOwnCostItems: { label: string; amountCents: number }[]
 }
+
+/** Dias entre duas datas AAAA-MM-DD (null se faltar alguma ou se fim < início). */
+export function daysBetween(start: string | null, end: string | null): number | null {
+  if (!start || !end) return null
+  const a = Date.parse(`${start}T00:00:00Z`)
+  const b = Date.parse(`${end}T00:00:00Z`)
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b < a) return null
+  return Math.round((b - a) / 86_400_000)
+}
+
+/** Rendimento simples ao mês (30 dias) em %: lucro ÷ capital ÷ (dias/30). */
+export function monthlyReturnPct(profit: number | null, capital: number, days: number | null): number | null {
+  if (profit == null || !capital || days == null) return null
+  return (profit / capital) * 100 / (Math.max(days, 1) / 30)
+}
+
+const todayISO = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
 
 export function ownerCarSummary(finances: VehicleFinance[], partners: Partner[], ownerPartnerId = 'p1'): OwnerCar[] {
   return finances.map((f) => {
@@ -134,6 +162,14 @@ export function ownerCarSummary(finances: VehicleFinance[], partners: Partner[],
       myRealProfit: sold ? (me?.realProfit ?? 0) : null,
       mySettlement: sold ? (me?.settlement ?? 0) : null,
       capitalEmpatado: sold ? null : myPaid,
+      purchaseDate: f.purchase.date,
+      saleAmount: sold ? f.sale.amountCents : null,
+      totalProfit: sold ? r.profit : null,
+      days: sold ? daysBetween(f.purchase.date, f.sale.date) : daysBetween(f.purchase.date, todayISO()),
+      monthlyPct: sold ? monthlyReturnPct(me?.realProfit ?? 0, myPaid + (me?.ownCosts ?? 0), daysBetween(f.purchase.date, f.sale.date)) : null,
+      myOwnCostItems: f.costs
+        .filter((c) => !isSharedCost(c) && c.paidBy === ownerPartnerId && c.amountCents)
+        .map((c) => ({ label: c.description || COST_LABEL[c.category], amountCents: c.amountCents })),
     }
   })
 }

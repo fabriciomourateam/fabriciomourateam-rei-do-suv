@@ -11,6 +11,7 @@ import {
   settlementText,
   withRunningBalance,
   ledgerTotals,
+  type OwnerCar,
 } from '@/lib/personal'
 import { SubmitButton } from '@/components/painel/submit-button'
 import { deleteEntry } from './actions'
@@ -25,6 +26,33 @@ const todayBR = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_
 const tone = (n: number | null) => (n == null || n === 0 ? '' : n > 0 ? 'text-emerald-400' : 'text-red-400')
 const money = (n: number | null | undefined) => (n == null ? '—' : formatBRL(n))
 const fmtDate = (d: string) => d.split('-').reverse().join('/')
+const pct = (n: number | null) => (n == null ? '—' : `${n.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`)
+
+function Period({ c }: { c: OwnerCar }) {
+  if (!c.purchaseDate) return <>—</>
+  const short = (d: string) => fmtDate(d).slice(0, 5)
+  if (!c.sold) return <>{short(c.purchaseDate)} → hoje{c.days != null && <> · <span className="text-text">{c.days} dias</span></>}</>
+  return <>{short(c.purchaseDate)} → {c.saleDate ? short(c.saleDate) : '?'}{c.days != null && <> · <span className="text-text">{c.days} dias</span></>}</>
+}
+
+/** Valor após as taxas, com um tooltip (passar o mouse ou tocar) listando as taxas que só eu paguei. */
+function AfterFees({ c }: { c: OwnerCar }) {
+  if (c.myRealProfit == null) return <>—</>
+  if (!c.myOwnCostItems.length) return <>{formatBRL(c.myRealProfit)}</>
+  return (
+    <span tabIndex={0} className="group relative inline-flex cursor-help items-center gap-1 outline-none">
+      {formatBRL(c.myRealProfit)}
+      <span aria-hidden className="text-[11px] text-muted">ⓘ</span>
+      <span role="tooltip" className="pointer-events-none absolute right-0 top-full z-20 mt-2 hidden w-64 rounded-lg border border-gold bg-black p-3 text-left text-xs text-text shadow-xl group-hover:block group-focus:block">
+        <span className="mb-1 block text-muted">Minha metade {formatBRL(c.myProfitShare ?? 0)}, menos as taxas que só eu paguei:</span>
+        {c.myOwnCostItems.map((t, i) => (
+          <span key={i} className="flex justify-between gap-3"><span>{t.label}</span><span className="tabular-nums">− {formatBRL(t.amountCents)}</span></span>
+        ))}
+        <span className="mt-1 flex justify-between gap-3 border-t border-white/10 pt-1 font-medium"><span>Ficou pra mim</span><span className="tabular-nums">{formatBRL(c.myRealProfit)}</span></span>
+      </span>
+    </span>
+  )
+}
 
 export default async function MeuFinanceiroPage({ searchParams }: { searchParams: Promise<{ mes?: string; ok?: string; erro?: string }> }) {
   const { user } = await requireOwner()
@@ -108,30 +136,35 @@ export default async function MeuFinanceiroPage({ searchParams }: { searchParams
         <p className="mt-3 text-sm text-muted">Nenhum carro com dados financeiros{period ? ' neste período' : ''}.</p>
       ) : (
         <>
-          <div className="mt-3 hidden overflow-x-auto rounded-xl border border-gold bg-coal md:block">
+          <div className="mt-3 hidden overflow-x-auto rounded-xl border border-gold bg-coal md:block xl:overflow-visible">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-[11px] uppercase tracking-wider text-muted">
                   <th className="px-4 py-3 text-left font-normal">Carro</th>
-                  <th className="px-3 py-3 text-left font-normal">Situação</th>
+                  <th className="px-3 py-3 text-left font-normal">Compra → venda</th>
                   <th className={`px-3 py-3 font-normal ${num}`}>Eu coloquei</th>
-                  <th className={`px-3 py-3 font-normal ${num}`}>Eu recebi</th>
-                  <th className={`px-3 py-3 font-normal ${num}`}>Minha parte</th>
-                  <th className={`px-3 py-3 font-normal ${num}`}>Custos só meus</th>
-                  <th className={`px-3 py-3 font-normal ${num}`}>Lucro real</th>
+                  <th className={`px-3 py-3 font-normal ${num}`}>Venda</th>
+                  <th className={`px-3 py-3 font-normal ${num}`}>Lucro total</th>
+                  <th className={`px-3 py-3 font-normal ${num}`}>Minha metade</th>
+                  <th className={`px-3 py-3 font-normal ${num}`}>Pra mim após taxas</th>
+                  <th className={`px-3 py-3 font-normal ${num}`}>% ao mês</th>
                   <th className={`px-3 py-3 font-normal ${num}`}>Acerto</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {sortedCars.map((c) => (
                   <tr key={c.vehicleId}>
-                    <td className="px-4 py-3"><span className="font-medium">{c.name}</span> <span className="text-muted">{[c.version, c.year].filter(Boolean).join(' · ')}</span></td>
-                    <td className="px-3 py-3 text-muted">{c.sold ? 'Vendido' : 'Em estoque'}</td>
-                    <td className={`px-3 py-3 ${num}`}>{formatBRL(c.myPaid)}</td>
-                    <td className={`px-3 py-3 ${num}`}>{c.sold ? formatBRL(c.myReceived) : '—'}</td>
+                    <td className="px-4 py-3">
+                      <span className="font-medium">{c.name}</span> <span className="text-muted">{[c.version, c.year].filter(Boolean).join(' · ')}</span>
+                      {!c.sold && <span className="ml-2 rounded-full border border-white/20 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted">Em estoque</span>}
+                    </td>
+                    <td className="px-3 py-3 text-muted"><Period c={c} /></td>
+                    <td className={`px-3 py-3 ${num}`}>{formatBRL(c.myPaid + c.myOwnCosts)}</td>
+                    <td className={`px-3 py-3 ${num}`}>{money(c.saleAmount)}</td>
+                    <td className={`px-3 py-3 ${num} ${tone(c.totalProfit)}`}>{money(c.totalProfit)}</td>
                     <td className={`px-3 py-3 ${num} ${tone(c.myProfitShare)}`}>{money(c.myProfitShare)}</td>
-                    <td className={`px-3 py-3 ${num}`}>{c.myOwnCosts ? formatBRL(c.myOwnCosts) : '—'}</td>
-                    <td className={`px-3 py-3 ${num} ${tone(c.myRealProfit)}`}>{money(c.myRealProfit)}</td>
+                    <td className={`px-3 py-3 ${num} ${tone(c.myRealProfit)}`}><AfterFees c={c} /></td>
+                    <td className={`px-3 py-3 ${num} ${tone(c.monthlyPct)}`}>{pct(c.monthlyPct)}</td>
                     <td className={`px-3 py-3 ${num} ${tone(c.mySettlement)}`}>
                       {c.mySettlement == null ? '—' : c.mySettlement === 0 ? 'Quites' : c.mySettlement > 0 ? `${partner} deve ${formatBRL(c.mySettlement)}` : `Devo ${formatBRL(-c.mySettlement)}`}
                     </td>
@@ -140,6 +173,7 @@ export default async function MeuFinanceiroPage({ searchParams }: { searchParams
               </tbody>
             </table>
           </div>
+          <p className="mt-2 hidden text-xs text-muted md:block">% ao mês = quanto ficou pra mim após as taxas ÷ o que eu coloquei no carro, dividido pelos meses entre a compra e a venda.</p>
 
           <ul className="mt-3 space-y-3 md:hidden">
             {sortedCars.map((c) => (
@@ -148,12 +182,18 @@ export default async function MeuFinanceiroPage({ searchParams }: { searchParams
                   <p className="min-w-0 truncate font-medium">{c.name} <span className="text-muted">{c.version}</span></p>
                   <span className="shrink-0 rounded-full border border-white/20 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted">{c.sold ? 'Vendido' : 'Em estoque'}</span>
                 </div>
+                <p className="mt-1 text-xs text-muted"><Period c={c} /></p>
                 <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                  <dt className="text-muted">Eu coloquei</dt><dd className={num}>{formatBRL(c.myPaid)}</dd>
-                  <dt className="text-muted">Eu recebi</dt><dd className={num}>{c.sold ? formatBRL(c.myReceived) : '—'}</dd>
-                  <dt className="text-muted">Minha parte</dt><dd className={`${num} ${tone(c.myProfitShare)}`}>{money(c.myProfitShare)}</dd>
-                  <dt className="text-muted">Custos só meus</dt><dd className={num}>{c.myOwnCosts ? formatBRL(c.myOwnCosts) : '—'}</dd>
-                  <dt className="text-muted">Lucro real</dt><dd className={`${num} ${tone(c.myRealProfit)}`}>{money(c.myRealProfit)}</dd>
+                  <dt className="text-muted">Eu coloquei</dt><dd className={num}>{formatBRL(c.myPaid + c.myOwnCosts)}</dd>
+                  {c.sold && (
+                    <>
+                      <dt className="text-muted">Venda</dt><dd className={num}>{money(c.saleAmount)}</dd>
+                      <dt className="text-muted">Lucro total</dt><dd className={`${num} ${tone(c.totalProfit)}`}>{money(c.totalProfit)}</dd>
+                      <dt className="text-muted">Minha metade</dt><dd className={`${num} ${tone(c.myProfitShare)}`}>{money(c.myProfitShare)}</dd>
+                      <dt className="text-muted">Pra mim após taxas</dt><dd className={`${num} ${tone(c.myRealProfit)}`}><AfterFees c={c} /></dd>
+                      <dt className="text-muted">% ao mês</dt><dd className={`${num} ${tone(c.monthlyPct)}`}>{pct(c.monthlyPct)}</dd>
+                    </>
+                  )}
                   <dt className="text-muted">Acerto</dt>
                   <dd className={`${num} ${tone(c.mySettlement)}`}>
                     {c.mySettlement == null ? '—' : settlementText(c.mySettlement, partner, formatBRL)}
