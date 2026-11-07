@@ -33,3 +33,15 @@ describe('carteira', () => {
     expect(p.receberItems).toEqual([{ name: 'A', amountCents: 110_000 }])
   })
 })
+
+import { fixedIncomeTaxPct } from './portfolio'
+describe('IR da renda fixa', () => {
+  it('tabela regressiva', () => {
+    expect([fixedIncomeTaxPct(100), fixedIncomeTaxPct(181), fixedIncomeTaxPct(400), fixedIncomeTaxPct(800)]).toEqual([22.5, 20, 17.5, 15])
+  })
+  it('CDI líquido é menor que o bruto', () => {
+    const p = computePortfolio([car({ name: 'A', purchaseDate: '2026-01-01', myPaid: 100_000_00 })], [], '2026-04-01', 12)
+    expect(p.cdiGainNet).toBeLessThan(p.cdiGain)
+    expect(p.cdiGainNet).toBe(Math.round(p.cdiGain * 0.775))
+  })
+})

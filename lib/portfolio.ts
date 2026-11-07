@@ -43,8 +43,22 @@ export interface Portfolio {
   /** rendimento simples ao mês, ponderado pelo tempo de cada aporte, em % */
   monthlyPct: number | null
   cdiMonthlyPct: number
-  /** quanto os mesmos aportes, nas mesmas datas, teriam rendido no CDI */
+  /** quanto os mesmos aportes, nas mesmas datas, teriam rendido no CDI (bruto) */
   cdiGain: number
+  /** o mesmo, descontado o IR de renda fixa pelo prazo de cada aporte */
+  cdiGainNet: number
+  /** CDI ao mês líquido do IR do prazo da carteira, em % */
+  cdiMonthlyNetPct: number
+  /** alíquota de IR usada no CDI ao mês líquido, em % */
+  irPct: number
+}
+
+/** IR regressivo da renda fixa (CDB, Tesouro), em %, pelos dias aplicados. */
+export function fixedIncomeTaxPct(days: number): number {
+  if (days <= 180) return 22.5
+  if (days <= 360) return 20
+  if (days <= 720) return 17.5
+  return 15
 }
 
 interface Flow {
@@ -112,14 +126,20 @@ export function computePortfolio(cars: OwnerCar[], entries: LedgerEntry[], today
   // Capital × tempo: cada aporte pesa pelos dias que está investido.
   let capitalMonths = 0
   let cdiGain = 0
+  let cdiGainNet = 0
   const cdiDaily = Math.pow(1 + cdiAnnualPct / 100, 1 / 365) - 1
   for (const a of aportes) {
     const d = daysBetween(a.date, today) ?? 0
     capitalMonths += a.amountCents * (Math.max(d, 1) / 30)
-    cdiGain += a.amountCents * (Math.pow(1 + cdiDaily, d) - 1)
+    const gross = a.amountCents * (Math.pow(1 + cdiDaily, d) - 1)
+    cdiGain += gross
+    cdiGainNet += gross * (1 - fixedIncomeTaxPct(d) / 100)
   }
 
   const first = aportes[0]
+  const days = first ? daysBetween(first.date, today) : null
+  const cdiMonthlyPct = (Math.pow(1 + cdiAnnualPct / 100, 1 / 12) - 1) * 100
+  const irPct = fixedIncomeTaxPct(days ?? 0)
   return {
     start: first ? { date: first.date, amountCents: first.amountCents, car: first.cars[0] ?? '' } : null,
     aportes,
@@ -133,9 +153,12 @@ export function computePortfolio(cars: OwnerCar[], entries: LedgerEntry[], today
     valorAtual,
     lucro,
     lucroPct: totalAportes ? (lucro / totalAportes) * 100 : null,
-    days: first ? daysBetween(first.date, today) : null,
+    days,
     monthlyPct: capitalMonths ? (lucro / capitalMonths) * 100 : null,
-    cdiMonthlyPct: (Math.pow(1 + cdiAnnualPct / 100, 1 / 12) - 1) * 100,
+    cdiMonthlyPct,
     cdiGain: Math.round(cdiGain),
+    cdiGainNet: Math.round(cdiGainNet),
+    cdiMonthlyNetPct: cdiMonthlyPct * (1 - irPct / 100),
+    irPct,
   }
 }

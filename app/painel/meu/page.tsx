@@ -74,7 +74,7 @@ function Carteira({ p, cdi, partner }: { p: Portfolio; cdi: { pct: number; date:
   if (!p.start) return null
   const box = 'rounded-xl border border-gold bg-coal p-4'
   const label = 'text-[11px] uppercase tracking-wider text-muted'
-  const beat = p.monthlyPct != null ? p.monthlyPct - p.cdiMonthlyPct : null
+  const beat = p.monthlyPct != null ? p.monthlyPct - p.cdiMonthlyNetPct : null
   const line = (k: string, v: number, cls = '') => (
     <span className="flex justify-between gap-3"><span>{k}</span><span className={`tabular-nums ${cls}`}>{formatBRL(v)}</span></span>
   )
@@ -146,26 +146,34 @@ function Carteira({ p, cdi, partner }: { p: Portfolio; cdi: { pct: number; date:
               <p className="text-xs text-muted">Rei do SUV</p>
             </div>
             <div>
-              <p className="text-2xl font-semibold tabular-nums text-muted">{pct2(p.cdiMonthlyPct)}</p>
-              <p className="text-xs text-muted">CDI ({cdi.pct.toLocaleString('pt-BR')}% a.a.{cdi.source === 'bcb' ? '' : ', estimado'})</p>
+              <p className="text-2xl font-semibold tabular-nums text-muted">{pct2(p.cdiMonthlyNetPct)}</p>
+              <p className="text-xs text-muted">CDI líquido (−{p.irPct.toLocaleString('pt-BR')}% de IR)</p>
+              <p className="text-[11px] text-muted">bruto {pct2(p.cdiMonthlyPct)} · {cdi.pct.toLocaleString('pt-BR')}% a.a.{cdi.source === 'bcb' ? '' : ', estimado'}</p>
             </div>
           </div>
           {beat != null && (
             <p className={`mt-2 text-sm ${beat >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              {beat >= 0 ? `${pct2(beat)} ao mês acima do CDI` : `${pct2(-beat)} ao mês abaixo do CDI`}
+              {beat >= 0 ? `${pct2(beat)} ao mês acima do CDI líquido` : `${pct2(-beat)} ao mês abaixo do CDI líquido`}
             </p>
           )}
         </div>
         <div className={box}>
           <p className={label}>
-            Comparado ao CDI
-            <Tip align="right">Quanto os mesmos aportes, nas mesmas datas, teriam rendido no CDI até hoje (bruto, antes do imposto de renda).</Tip>
+            Comparado ao CDI (líquido)
+            <Tip align="right">
+              <span className="mb-1 block">Quanto os mesmos aportes, nas mesmas datas, teriam rendido no CDI até hoje, já descontado o imposto de renda da renda fixa (CDB, Tesouro), que cai com o tempo:</span>
+              <span className="flex justify-between"><span>até 6 meses</span><span>22,5%</span></span>
+              <span className="flex justify-between"><span>6 meses a 1 ano</span><span>20%</span></span>
+              <span className="flex justify-between"><span>1 a 2 anos</span><span>17,5%</span></span>
+              <span className="flex justify-between"><span>mais de 2 anos</span><span>15%</span></span>
+            </Tip>
           </p>
           <dl className="mt-2 grid grid-cols-2 gap-y-1 text-sm">
             <dt className="text-muted">Meu lucro</dt><dd className={`text-right tabular-nums ${tone(p.lucro)}`}>{formatBRL(p.lucro)}</dd>
-            <dt className="text-muted">No CDI teria rendido</dt><dd className="text-right tabular-nums">{formatBRL(p.cdiGain)}</dd>
+            <dt className="text-muted">No CDI, já sem o IR</dt><dd className="text-right tabular-nums">{formatBRL(p.cdiGainNet)}</dd>
+            <dt className="text-[11px] text-muted">(bruto, antes do IR)</dt><dd className="text-right text-[11px] tabular-nums text-muted">{formatBRL(p.cdiGain)}</dd>
             <dt className="text-muted">Diferença</dt>
-            <dd className={`text-right font-medium tabular-nums ${tone(p.lucro - p.cdiGain)}`}>{p.lucro - p.cdiGain >= 0 ? '+' : '−'} {formatBRL(Math.abs(p.lucro - p.cdiGain))}</dd>
+            <dd className={`text-right font-medium tabular-nums ${tone(p.lucro - p.cdiGainNet)}`}>{p.lucro - p.cdiGainNet >= 0 ? '+' : '−'} {formatBRL(Math.abs(p.lucro - p.cdiGainNet))}</dd>
           </dl>
         </div>
       </div>
