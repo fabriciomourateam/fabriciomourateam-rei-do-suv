@@ -3,6 +3,8 @@ import { requireOwner } from '@/lib/auth'
 import { formatBRL, monthLabel, monthOf } from '@/lib/finance'
 import { getFinanceConfig } from '@/lib/finance-store'
 import { getLedger, getOwnerCars } from '@/lib/personal-store'
+import { getCdiAnnual } from '@/lib/cdi'
+import { computePortfolio, type Portfolio } from '@/lib/portfolio'
 import {
   ENTRY_SHORT,
   inMonth,
@@ -54,13 +56,131 @@ function AfterFees({ c }: { c: OwnerCar }) {
   )
 }
 
+const pct2 = (n: number | null) => (n == null ? '—' : `${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`)
+
+/** Ícone ⓘ com explicação ao passar o mouse ou tocar. */
+function Tip({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' }) {
+  return (
+    <span tabIndex={0} className="group relative ml-1 inline-block cursor-help align-middle text-[11px] text-muted outline-none">
+      ⓘ
+      <span role="tooltip" className={`pointer-events-none absolute top-full z-20 mt-2 hidden w-72 rounded-lg border border-gold bg-black p-3 text-left text-xs normal-case tracking-normal text-text shadow-xl group-hover:block group-focus:block ${align === 'right' ? 'right-0' : 'left-0'}`}>
+        {children}
+      </span>
+    </span>
+  )
+}
+
+function Carteira({ p, cdi, partner }: { p: Portfolio; cdi: { pct: number; date: string | null; source: string }; partner: string }) {
+  if (!p.start) return null
+  const box = 'rounded-xl border border-gold bg-coal p-4'
+  const label = 'text-[11px] uppercase tracking-wider text-muted'
+  const beat = p.monthlyPct != null ? p.monthlyPct - p.cdiMonthlyPct : null
+  const line = (k: string, v: number, cls = '') => (
+    <span className="flex justify-between gap-3"><span>{k}</span><span className={`tabular-nums ${cls}`}>{formatBRL(v)}</span></span>
+  )
+  return (
+    <section className="mt-6">
+      <h2 className="font-display text-gold text-lg">Minha carteira</h2>
+      <p className="mt-1 text-xs text-muted">
+        Desde {fmtDate(p.start.date)} ({p.days} dias). Calculada sozinha a partir dos carros e das movimentações.
+      </p>
+      <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className={box}>
+          <p className={label}>Comecei com</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums">{formatBRL(p.start.amountCents)}</p>
+          <p className="mt-1 text-xs text-muted">{p.start.car}, {fmtDate(p.start.date)}</p>
+        </div>
+        <div className={box}>
+          <p className={label}>
+            Saiu do meu bolso
+            <Tip>
+              <span className="mb-1 block text-muted">Cada carro usa primeiro o dinheiro que voltou de vendas; o que faltou saiu do bolso:</span>
+              {p.aportes.map((a, i) => (
+                <span key={i} className="flex justify-between gap-3"><span>{fmtDate(a.date).slice(0, 5)} · {a.cars.join(', ') || 'Despesa'}</span><span className="tabular-nums">{formatBRL(a.amountCents)}</span></span>
+              ))}
+              <span className="mt-1 flex justify-between gap-3 border-t border-white/10 pt-1 font-medium"><span>Total</span><span className="tabular-nums">{formatBRL(p.totalAportes)}</span></span>
+            </Tip>
+          </p>
+          <p className="mt-1 text-xl font-semibold tabular-nums">{formatBRL(p.totalAportes)}</p>
+          <p className="mt-1 text-xs text-muted">{p.aportes.length} aportes{p.retiradas ? ` · retirei ${formatBRL(p.retiradas)}` : ''}</p>
+        </div>
+        <div className={box}>
+          <p className={label}>
+            Tenho hoje
+            <Tip align="right">
+              {line(`Carros em estoque (${p.estoqueCount}), pelo custo`, p.estoque)}
+              {line('Caixa (já voltou, não reinvestido)', p.caixa)}
+              {p.receberItems.map((r, i) => (
+                <span key={i} className="flex justify-between gap-3">
+                  <span>{r.amountCents > 0 ? `${partner} me deve` : `Devo ao ${partner}`} · {r.name}</span>
+                  <span className={`tabular-nums ${r.amountCents > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{r.amountCents > 0 ? '' : '− '}{formatBRL(Math.abs(r.amountCents))}</span>
+                </span>
+              ))}
+              <span className="mt-1 flex justify-between gap-3 border-t border-white/10 pt-1 font-medium"><span>Total</span><span className="tabular-nums">{formatBRL(p.valorAtual)}</span></span>
+            </Tip>
+          </p>
+          <p className="mt-1 text-xl font-semibold tabular-nums">{formatBRL(p.valorAtual)}</p>
+          <p className="mt-1 text-xs text-muted">
+            Carros {formatBRL(p.estoque)} · caixa {formatBRL(p.caixa)}
+            {p.receber ? <> · {p.receber > 0 ? 'a receber' : 'a pagar'} {formatBRL(Math.abs(p.receber))}</> : null}
+          </p>
+        </div>
+        <div className={box}>
+          <p className={label}>Lucro até agora</p>
+          <p className={`mt-1 text-xl font-semibold tabular-nums ${tone(p.lucro)}`}>{formatBRL(p.lucro)}</p>
+          <p className="mt-1 text-xs text-muted">{pct(p.lucroPct)} sobre o que saiu do bolso</p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <div className={box}>
+          <p className={label}>
+            Rendimento ao mês
+            <Tip>
+              Lucro ÷ dinheiro investido, pesando cada aporte pelos dias em que ficou aplicado. Carros em estoque entram pelo que custaram — o lucro deles só conta quando venderem, então este número sobe a cada venda.
+            </Tip>
+          </p>
+          <div className="mt-2 flex items-baseline gap-6">
+            <div>
+              <p className={`text-2xl font-semibold tabular-nums ${tone(p.monthlyPct)}`}>{pct2(p.monthlyPct)}</p>
+              <p className="text-xs text-muted">Rei do SUV</p>
+            </div>
+            <div>
+              <p className="text-2xl font-semibold tabular-nums text-muted">{pct2(p.cdiMonthlyPct)}</p>
+              <p className="text-xs text-muted">CDI ({cdi.pct.toLocaleString('pt-BR')}% a.a.{cdi.source === 'bcb' ? '' : ', estimado'})</p>
+            </div>
+          </div>
+          {beat != null && (
+            <p className={`mt-2 text-sm ${beat >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {beat >= 0 ? `${pct2(beat)} ao mês acima do CDI` : `${pct2(-beat)} ao mês abaixo do CDI`}
+            </p>
+          )}
+        </div>
+        <div className={box}>
+          <p className={label}>
+            Comparado ao CDI
+            <Tip align="right">Quanto os mesmos aportes, nas mesmas datas, teriam rendido no CDI até hoje (bruto, antes do imposto de renda).</Tip>
+          </p>
+          <dl className="mt-2 grid grid-cols-2 gap-y-1 text-sm">
+            <dt className="text-muted">Meu lucro</dt><dd className={`text-right tabular-nums ${tone(p.lucro)}`}>{formatBRL(p.lucro)}</dd>
+            <dt className="text-muted">No CDI teria rendido</dt><dd className="text-right tabular-nums">{formatBRL(p.cdiGain)}</dd>
+            <dt className="text-muted">Diferença</dt>
+            <dd className={`text-right font-medium tabular-nums ${tone(p.lucro - p.cdiGain)}`}>{p.lucro - p.cdiGain >= 0 ? '+' : '−'} {formatBRL(Math.abs(p.lucro - p.cdiGain))}</dd>
+          </dl>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default async function MeuFinanceiroPage({ searchParams }: { searchParams: Promise<{ mes?: string; ok?: string; erro?: string }> }) {
   const { user } = await requireOwner()
   const { mes, ok, erro } = await searchParams
-  const [config, finances, ledger] = await Promise.all([getFinanceConfig(), getOwnerCars(user.id), getLedger(user.id)])
+  const [config, finances, ledger, cdi] = await Promise.all([getFinanceConfig(), getOwnerCars(user.id), getLedger(user.id), getCdiAnnual()])
 
   const partner = config.partners.find((p) => p.id !== OWNER_PARTNER_ID)?.name ?? 'Sócio'
   const allCars = ownerCarSummary(finances, config.partners, OWNER_PARTNER_ID)
+  const portfolio = computePortfolio(allCars, ledger.entries, todayBR(), cdi.pct)
   const rowsAll = withRunningBalance(ledger.entries) // saldo acumulado sobre TODO o histórico
 
   const months = [
@@ -98,7 +218,9 @@ export default async function MeuFinanceiroPage({ searchParams }: { searchParams
       {ok && <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">{ok === '2' ? 'Movimentação removida.' : 'Movimentação lançada.'}</p>}
       {erro && <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{erro}</p>}
 
-      <form method="get" className="mt-6 flex items-end gap-2">
+      <Carteira p={portfolio} cdi={cdi} partner={partner} />
+
+      <form method="get" className="mt-10 flex items-end gap-2">
         <div>
           <label className="label" htmlFor="mes">Período</label>
           <select id="mes" name="mes" defaultValue={period} className="field">
