@@ -14,6 +14,8 @@ Isso cria as tabelas (`suv_*`), as regras de segurança, o bucket de fotos `suv-
 - e-mail: `fabriciomouratreinador@gmail.com`
 - senha: a que você definiu no passo acima (se esse e-mail já existia no projeto, continua valendo a senha antiga)
 
+3. Depois, rode também [`supabase/migrations/0002_suv_financeiro_tabela.sql`](supabase/migrations/0002_suv_financeiro_tabela.sql). Ele cria a tabela `suv_finance` (cópia do financeiro de cada carro) e a visão `suv_financeiro_resumo`, usadas pelo painel de patrimônio. A tabela se preenche sozinha ao abrir **Financeiro** no painel.
+
 ### 2. Hospedagem (Vercel)
 1. Em vercel.com → **Add New → Project** → importe este repositório.
 2. Em **Environment Variables**, cadastre:
