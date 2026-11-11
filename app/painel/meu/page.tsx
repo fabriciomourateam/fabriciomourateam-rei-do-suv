@@ -1,8 +1,9 @@
 import Link from 'next/link'
+import { after } from 'next/server'
 import { requireOwner } from '@/lib/auth'
 import { formatBRL, monthLabel, monthOf } from '@/lib/finance'
 import { getFinanceConfig } from '@/lib/finance-store'
-import { getLedger, getOwnerCars } from '@/lib/personal-store'
+import { getLedger, getOwnerCars, mirrorOwnerSnapshot } from '@/lib/personal-store'
 import { getCdiAnnual } from '@/lib/cdi'
 import { computePortfolio, type Portfolio } from '@/lib/portfolio'
 import {
@@ -189,6 +190,8 @@ export default async function MeuFinanceiroPage({ searchParams }: { searchParams
   const partner = config.partners.find((p) => p.id !== OWNER_PARTNER_ID)?.name ?? 'Sócio'
   const allCars = ownerCarSummary(finances, config.partners, OWNER_PARTNER_ID)
   const portfolio = computePortfolio(allCars, ledger.entries, todayBR(), cdi.pct)
+  // cópia em tabela para o painel de patrimônio (depois da resposta, não atrasa a página)
+  after(() => mirrorOwnerSnapshot(user.id, allCars, portfolio, todayBR()))
   const rowsAll = withRunningBalance(ledger.entries) // saldo acumulado sobre TODO o histórico
 
   const months = [
