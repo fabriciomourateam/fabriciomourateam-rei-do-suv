@@ -26,6 +26,33 @@ export async function ensurePrivateBucket(): Promise<string | null> {
   return error && !/exist/i.test(error.message) ? error.message : null
 }
 
+/** Tabela-espelho do financeiro (supabase/migrations/0002). Erros aqui nunca impedem o salvamento no bucket. */
+const MIRROR_TABLE = 'suv_finance'
+export const CONFIG_MIRROR_ID = '_config'
+
+async function mirrorUpsert(rows: { vehicle_id: string; data: unknown }[]): Promise<void> {
+  if (!canUseStorage() || rows.length === 0) return
+  try {
+    const now = new Date().toISOString()
+    const { error } = await createAdminClient()
+      .from(MIRROR_TABLE)
+      .upsert(rows.map((r) => ({ ...r, updated_at: now })), { onConflict: 'vehicle_id' })
+    if (error) console.warn('[financeiro] espelho não atualizado:', error.message)
+  } catch (e) {
+    console.warn('[financeiro] espelho não atualizado:', e instanceof Error ? e.message : e)
+  }
+}
+
+async function mirrorDelete(vehicleId: string): Promise<void> {
+  if (!canUseStorage()) return
+  try {
+    const { error } = await createAdminClient().from(MIRROR_TABLE).delete().eq('vehicle_id', vehicleId)
+    if (error) console.warn('[financeiro] espelho não atualizado:', error.message)
+  } catch (e) {
+    console.warn('[financeiro] espelho não atualizado:', e instanceof Error ? e.message : e)
+  }
+}
+
 async function readJson(path: string): Promise<unknown | null> {
   if (!canUseStorage()) return null
   try {
@@ -94,7 +121,9 @@ export async function getFinanceConfig(): Promise<FinanceConfig> {
 }
 
 export async function saveFinanceConfig(config: FinanceConfig): Promise<string | null> {
-  return writeJson(CONFIG_PATH, config)
+  const error = await writeJson(CONFIG_PATH, config)
+  if (!error) await mirrorUpsert([{ vehicle_id: CONFIG_MIRROR_ID, data: config }])
+  return error
 }
 
 export async function getVehicleFinance(vehicleId: string): Promise<VehicleFinance> {
@@ -102,7 +131,10 @@ export async function getVehicleFinance(vehicleId: string): Promise<VehicleFinan
 }
 
 export async function saveVehicleFinance(f: VehicleFinance): Promise<string | null> {
-  return writeJson(`${VEHICLES_DIR}/${f.vehicleId}.json`, { ...f, updatedAt: new Date().toISOString() })
+  const saved = { ...f, updatedAt: new Date().toISOString() }
+  const error = await writeJson(`${VEHICLES_DIR}/${f.vehicleId}.json`, saved)
+  if (!error) await mirrorUpsert([{ vehicle_id: f.vehicleId, data: saved }])
+  return error
 }
 
 /** Todos os arquivos financeiros existentes (um por carro com dados). */
@@ -113,7 +145,14 @@ export async function listAllFinance(): Promise<VehicleFinance[]> {
     const { data, error } = await storage.list(VEHICLES_DIR, { limit: 1000 })
     if (error || !data) return []
     const ids = data.filter((f) => f.name.endsWith('.json')).map((f) => f.name.slice(0, -5))
-    return await Promise.all(ids.map((id) => getVehicleFinance(id)))
+    const all = await Promise.all(ids.map((id) => getVehicleFinance(id)))
+    // Mantém a tabela-espelho em dia (inclui carros lançados antes dela existir).
+    const config = await getFinanceConfig()
+    await mirrorUpsert([
+      { vehicle_id: CONFIG_MIRROR_ID, data: config },
+      ...all.map((f) => ({ vehicle_id: f.vehicleId, data: f })),
+    ])
+    return all
   } catch {
     return []
   }
@@ -124,5 +163,6 @@ export async function deleteVehicleFinance(vehicleId: string): Promise<string | 
   if (!canUseStorage()) return 'Supabase não configurado.'
   if (!/^[A-Za-z0-9_-]{1,120}$/.test(vehicleId)) return 'Carro inválido.'
   const { error } = await createAdminClient().storage.from(PRIVATE_BUCKET).remove([`${VEHICLES_DIR}/${vehicleId}.json`])
+  if (!error) await mirrorDelete(vehicleId)
   return error ? error.message : null
 }
