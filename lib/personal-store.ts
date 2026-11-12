@@ -3,7 +3,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { readFreshJson } from '@/lib/storage-json'
 import { ensurePrivateBucket, normalizeFinance, PRIVATE_BUCKET } from '@/lib/finance-store'
 import type { VehicleFinance } from './finance'
-import { ENTRY_TYPES, type Direction, type EntryType, type LedgerEntry, type PersonalLedger } from './personal'
+import { ENTRY_TYPES, type Direction, type EntryType, type LedgerEntry, type OwnerCar, type PersonalLedger } from './personal'
+import type { Portfolio } from './portfolio'
+import { ownerMirrorRows } from './owner-mirror'
 
 const canUseStorage = () => Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
 
@@ -97,4 +99,30 @@ export async function saveOwnerCars(userId: string, cars: VehicleFinance[]): Pro
     .storage.from(PRIVATE_BUCKET)
     .upload(path, body, { upsert: true, contentType: 'application/json', cacheControl: '0' })
   return error ? error.message : null
+}
+
+/**
+ * Cópia do "Meu financeiro" em tabela (suv_meu_espelho) para o painel de patrimônio.
+ * Regravada ao abrir /painel/meu. Erros só vão para o log: nunca atrapalham a página.
+ */
+export async function mirrorOwnerSnapshot(userId: string, cars: OwnerCar[], portfolio: Portfolio, today: string): Promise<void> {
+  if (!SAFE_ID.test(userId) || !canUseStorage()) return
+  try {
+    const db = createAdminClient()
+    const now = new Date().toISOString()
+    const rows = ownerMirrorRows(userId, cars, portfolio, today).map((r) => ({ ...r, updated_at: now }))
+    const { error } = await db.from('suv_meu_espelho').upsert(rows, { onConflict: 'owner_id,item_id' })
+    if (error) return console.warn('[meu financeiro] espelho não atualizado:', error.message)
+    // tira carros que saíram do arquivo
+    const keep = rows.map((r) => r.item_id)
+    const { data: old, error: listError } = await db.from('suv_meu_espelho').select('item_id').eq('owner_id', userId)
+    if (listError) return console.warn('[meu financeiro] espelho não atualizado:', listError.message)
+    const stale = (old ?? []).map((r: { item_id: string }) => r.item_id).filter((id) => !keep.includes(id))
+    if (stale.length) {
+      const { error: delError } = await db.from('suv_meu_espelho').delete().eq('owner_id', userId).in('item_id', stale)
+      if (delError) console.warn('[meu financeiro] espelho não atualizado:', delError.message)
+    }
+  } catch (e) {
+    console.warn('[meu financeiro] espelho não atualizado:', e instanceof Error ? e.message : e)
+  }
 }
